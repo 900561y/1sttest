@@ -46,7 +46,7 @@ osSystemMdPath=""
 osSystemShell="bash"
 
 
-# 检测系统发行版
+# Detection system release
 function getLinuxOSRelease(){
     if [[ -f /etc/redhat-release ]]; then
         osRelease="centos"
@@ -92,7 +92,7 @@ function getLinuxOSRelease(){
     echo "OS info: ${osInfo}, ${osRelease}, ${osReleaseVersion}, ${osReleaseVersionNo}, ${osReleaseVersionCodeName}, ${osSystemShell}, ${osSystemPackage}, ${osSystemMdPath}"
 }
 
-# 检测系统版本号
+# Detection system version number
 getLinuxOSVersion(){
     if [[ -s /etc/redhat-release ]]; then
         osReleaseVersion=$(grep -oE '[0-9.]+' /etc/redhat-release)
@@ -149,7 +149,7 @@ function testLinuxPortUsage(){
     if [ -n "$osPort80" ]; then
         process80=`netstat -tlpn | awk -F '[: ]+' '$5=="80"{print $9}'`
         red "==========================================================="
-        red "检测到80端口被占用，占用进程为：${process80}，本次安装结束"
+        red "It is detected that port 80 is occupied, and the occupied process is: ${process80}, this installation is over"
         red "==========================================================="
         exit 1
     fi
@@ -157,7 +157,7 @@ function testLinuxPortUsage(){
     if [ -n "$osPort443" ]; then
         process443=`netstat -tlpn | awk -F '[: ]+' '$5=="443"{print $9}'`
         red "============================================================="
-        red "检测到443端口被占用，占用进程为：${process443}，本次安装结束"
+        red "It is detected that port 443 is occupied, and the occupied process is: ${process443}, this installation is over"
         red "============================================================="
         exit 1
     fi
@@ -165,15 +165,15 @@ function testLinuxPortUsage(){
     osSELINUXCheck=$(grep SELINUX= /etc/selinux/config | grep -v "#")
     if [ "$osSELINUXCheck" == "SELINUX=enforcing" ]; then
         red "======================================================================="
-        red "检测到SELinux为开启强制模式状态，为防止申请证书失败，请先重启VPS后，再执行本脚本"
+        red "SELinux is detected to be in forced mode. In order to prevent failure to apply for a certificate, please restart the VPS before executing this script"
         red "======================================================================="
-        read -p "是否现在重启? 请输入 [Y/n] :" osSELINUXCheckIsRebootInput
+        read -p "Do you want to restart now? Please enter [Y/n] :" osSELINUXCheckIsRebootInput
         [ -z "${osSELINUXCheckIsRebootInput}" ] && osSELINUXCheckIsRebootInput="y"
 
         if [[ $osSELINUXCheckIsRebootInput == [Yy] ]]; then
             sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config
             setenforce 0
-            echo -e "VPS 重启中..."
+            echo -e "VPS Restarting..."
             reboot
         fi
         exit
@@ -181,15 +181,15 @@ function testLinuxPortUsage(){
 
     if [ "$osSELINUXCheck" == "SELINUX=permissive" ]; then
         red "======================================================================="
-        red "检测到SELinux为宽容模式状态，为防止申请证书失败，请先重启VPS后，再执行本脚本"
+        red "SELinux is detected to be in permissive mode. In order to prevent failure to apply for a certificate, please restart the VPS before executing this script"
         red "======================================================================="
-        read -p "是否现在重启? 请输入 [Y/n] :" osSELINUXCheckIsRebootInput
+        read -p "Do you want to restart now? Please enter [Y/n] :" osSELINUXCheckIsRebootInput
         [ -z "${osSELINUXCheckIsRebootInput}" ] && osSELINUXCheckIsRebootInput="y"
 
         if [[ $osSELINUXCheckIsRebootInput == [Yy] ]]; then
             sed -i 's/SELINUX=permissive/SELINUX=disabled/g' /etc/selinux/config
             setenforce 0
-            echo -e "VPS 重启中..."
+            echo -e "VPS Restarting..."
             reboot
         fi
         exit
@@ -198,14 +198,14 @@ function testLinuxPortUsage(){
     if [ "$osRelease" == "centos" ]; then
         if  [ -n "$(grep ' 6\.' /etc/redhat-release)" ] ; then
             red "==============="
-            red "当前系统不受支持"
+            red "The current system is not supported"
             red "==============="
             exit
         fi
 
         if  [ -n "$(grep ' 5\.' /etc/redhat-release)" ] ; then
             red "==============="
-            red "当前系统不受支持"
+            red "The current system is not supported"
             red "==============="
             exit
         fi
@@ -216,13 +216,13 @@ function testLinuxPortUsage(){
     elif [ "$osRelease" == "ubuntu" ]; then
         if  [ -n "$(grep ' 14\.' /etc/os-release)" ] ;then
             red "==============="
-            red "当前系统不受支持"
+            red "The current system is not supported"
             red "==============="
             exit
         fi
         if  [ -n "$(grep ' 12\.' /etc/os-release)" ] ;then
             red "==============="
-            red "当前系统不受支持"
+            red "The current system is not supported"
             red "==============="
             exit
         fi
@@ -239,7 +239,7 @@ function testLinuxPortUsage(){
 }
 
 
-# 编辑 SSH 公钥 文件用于 免密码登录
+# Edit SSH public key file for password-free login
 function editLinuxLoginWithPublicKey(){
     if [ ! -d "${HOME}/ssh" ]; then
         mkdir -p ${HOME}/.ssh
@@ -250,11 +250,11 @@ function editLinuxLoginWithPublicKey(){
 
 
 
-# 设置SSH root 登录
+# Set up SSH root login
 
 function setLinuxRootLogin(){
 
-    read -p "是否设置允许root登陆(ssh密钥方式 或 密码方式登陆 )? 请输入[Y/n]?" osIsRootLoginInput
+    read -p "Is root login allowed (ssh key or password login)? Please enter[Y/n]?" osIsRootLoginInput
     osIsRootLoginInput=${osIsRootLoginInput:-Y}
 
     if [[ $osIsRootLoginInput == [Yy] ]]; then
@@ -266,16 +266,16 @@ function setLinuxRootLogin(){
             ${sudoCmd} sed -i 's/#\?PermitRootLogin prohibit-password/PermitRootLogin yes/g' /etc/ssh/sshd_config
         fi
 
-        green "设置允许root登陆成功!"
+        green "Set to allow root login success!"
     fi
 
 
-    read -p "是否设置允许root使用密码登陆(上一步请先设置允许root登陆才可以)? 请输入[Y/n]?" osIsRootLoginWithPasswordInput
+    read -p "Do you want to allow root to log in with a password (please set to allow root to log in in the previous step)? Please enter[Y/n]?" osIsRootLoginWithPasswordInput
     osIsRootLoginWithPasswordInput=${osIsRootLoginWithPasswordInput:-Y}
 
     if [[ $osIsRootLoginWithPasswordInput == [Yy] ]]; then
         sed -i 's/#\?PasswordAuthentication \(yes\|no\)/PasswordAuthentication yes/g' /etc/ssh/sshd_config
-        green "设置允许root使用密码登陆成功!"
+        green "Set to allow root to log in successfully with a password!"
     fi
 
 
@@ -288,7 +288,7 @@ function setLinuxRootLogin(){
         ${sudoCmd} service sshd restart
         ${sudoCmd} systemctl restart sshd
 
-        green "设置成功, 请用shell工具软件登陆vps服务器!"
+        green "The setting is successful, please log in to the vps server with the shell tool software!"
     fi
 
     if [ "$osRelease" == "ubuntu" ] || [ "$osRelease" == "debian" ] ; then
@@ -296,17 +296,17 @@ function setLinuxRootLogin(){
         ${sudoCmd} service ssh restart
         ${sudoCmd} systemctl restart ssh
 
-        green "设置成功, 请用shell工具软件登陆vps服务器!"
+        green "The setting is successful, please log in to the vps server with the shell tool software!"
     fi
 
     # /etc/init.d/ssh restart
 
 }
 
-# 修改SSH 端口号
+# Modify SSH port number
 function changeLinuxSSHPort(){
-    green "修改的SSH登陆的端口号, 不要使用常用的端口号. 例如 20|21|23|25|53|69|80|110|443|123!"
-    read -p "请输入要修改的端口号(必须是纯数字并且在1024~65535之间或22):" osSSHLoginPortInput
+    green "Modified SSH login port number, do not use commonly used port numbers. For example 20|21|23|25|53|69|80|110|443|123!"
+    read -p "Please enter the port number to be modified (must be a pure number and between 1024~65535 or 22):" osSSHLoginPortInput
     osSSHLoginPortInput=${osSSHLoginPortInput:-0}
 
     if [ $osSSHLoginPortInput -eq 22 -o $osSSHLoginPortInput -gt 1024 -a $osSSHLoginPortInput -lt 65535 ]; then
@@ -330,10 +330,10 @@ function changeLinuxSSHPort(){
             ${sudoCmd} systemctl restart ssh
         fi
 
-        green "设置成功, 请记住设置的端口号 ${osSSHLoginPortInput}!"
-        green "登陆服务器命令: ssh -p ${osSSHLoginPortInput} root@111.111.111.your ip !"
+        green "The setting is successful, please remember the port number set ${osSSHLoginPortInput}!"
+        green "Login server command: ssh -p ${osSSHLoginPortInput} root@111.111.111.your ip !"
     else
-        echo "输入的端口号错误! 范围: 22,1025~65534"
+        echo "The port number entered is wrong! Range: 22,1025~65534"
     fi
 }
 
@@ -342,15 +342,15 @@ function setLinuxDateZone(){
     tempCurrentDateZone=$(date +'%z')
 
     if [[ ${tempCurrentDateZone} == "+0800" ]]; then
-        yellow "当前时区已经为北京时间  $tempCurrentDateZone | $(date -R) "
+        yellow "The current time zone is already Beijing time  $tempCurrentDateZone | $(date -R) "
     else 
         green " =================================================="
-        yellow "当前时区为: $tempCurrentDateZone | $(date -R) "
-        yellow "是否设置时区为北京时间 +0800区, 以便cron定时重启脚本按照北京时间运行."
+        yellow "The current time zone is: $tempCurrentDateZone | $(date -R) "
+        yellow "Whether to set the time zone to Beijing time +0800区, So that the cron timing restart script runs according to Beijing time."
         green " =================================================="
         # read 默认值 https://stackoverflow.com/questions/2642585/read-a-variable-in-bash-with-a-default-value
 
-        read -p "是否设置为北京时间 +0800 时区? 请输入[Y/n]?" osTimezoneInput
+        read -p "Is it set to Beijing time +0800 time zone? Please enter[Y/n]?" osTimezoneInput
         osTimezoneInput=${osTimezoneInput:-Y}
 
         if [[ $osTimezoneInput == [Yy] ]]; then
@@ -358,7 +358,7 @@ function setLinuxDateZone(){
                 mv /etc/localtime /etc/localtime.bak
                 cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 
-                yellow "设置成功! 当前时区已设置为 $(date -R)"
+                yellow "Set successfully! The current time zone has been set to $(date -R)"
                 green " =================================================="
             fi
         fi
@@ -368,7 +368,7 @@ function setLinuxDateZone(){
 
 
 
-# 软件安装
+# Software Installation
 
 
 
@@ -448,7 +448,7 @@ EOF
 
 
 function installSoftEditor(){
-    # 安装 micro 编辑器
+    # Install the micro editor
     if [[ ! -f "${HOME}/bin/micro" ]] ;  then
         mkdir -p ${HOME}/bin
         cd ${HOME}/bin
@@ -457,7 +457,7 @@ function installSoftEditor(){
         cp ${HOME}/bin/micro /usr/local/bin
 
         green " =================================================="
-        yellow " micro 编辑器 安装成功!"
+        yellow " The micro editor is installed successfully!"
         green " =================================================="
     fi
 
@@ -467,7 +467,7 @@ function installSoftEditor(){
         $osSystemPackage install -y vim-gui-common vim-runtime vim 
     fi
 
-    # 设置vim 中文乱码
+    # Set vim Chinese garbled
     if [[ ! -d "${HOME}/.vimrc" ]] ;  then
         cat > "${HOME}/.vimrc" <<-EOF
 set fileencodings=utf-8,gb2312,gb18030,gbk,ucs-bom,cp936,latin1
@@ -489,7 +489,7 @@ EOF
 function installSoftOhMyZsh(){
 
     green " =================================================="
-    yellow " 准备安装 ZSH"
+    yellow "Ready to install ZSH"
     green " =================================================="
 
     if [ "$osRelease" == "centos" ]; then
@@ -507,10 +507,10 @@ function installSoftOhMyZsh(){
     fi
 
     green " =================================================="
-    yellow " ZSH 安装成功, 准备安装 oh-my-zsh"
+    yellow " ZSH installation is successful, ready to install oh-my-zsh"
     green " =================================================="
 
-    # 安装 oh-my-zsh
+    # installation oh-my-zsh
     if [[ ! -d "${HOME}/.oh-my-zsh" ]] ;  then
         curl -Lo ${HOME}/ohmyzsh_install.sh https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh
         chmod +x ${HOME}/ohmyzsh_install.sh
@@ -520,7 +520,7 @@ function installSoftOhMyZsh(){
     if [[ ! -d "${HOME}/.oh-my-zsh/custom/plugins/zsh-autosuggestions" ]] ;  then
         git clone "https://github.com/zsh-users/zsh-autosuggestions" "${HOME}/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
 
-        # 配置 zshrc 文件
+        # Configure zshrc file
         zshConfig=${HOME}/.zshrc
         zshTheme="maran"
         sed -i 's/ZSH_THEME=.*/ZSH_THEME="'"${zshTheme}"'"/' $zshConfig
@@ -545,7 +545,7 @@ function installSoftOhMyZsh(){
         echo 'alias mi="micro"' >> ${HOME}/.zshrc
 
         green " =================================================="
-        yellow " oh-my-zsh 安装成功, 请用exit命令退出服务器后重新登陆即可!"
+        yellow " oh-my-zsh is successfully installed, please use the exit command to exit the server and log in again!"
         green " =================================================="
 
     fi
@@ -554,7 +554,7 @@ function installSoftOhMyZsh(){
 
 
 
-# 网络测速
+# Network speed test
 
 function vps_netflix(){
     # bash <(curl -sSL https://raw.githubusercontent.com/Netflixxp/NF/main/nf.sh)
@@ -603,25 +603,25 @@ function installWireguard(){
 
     getTrojanAndV2rayVersion "wgcf"
     green " =================================================="
-    green "    开始安装 Wireguard 和 Cloudflare Warp 命令行工具 Wgcf ${versionWgcf} !"
-    red "    需要先使用安装BBR脚本 安装原版本BBR, 不能安装bbr plus"
-    red "    Centos 7 推荐安装4.11 内核, 使用本脚本第一项BBR脚本安装原版BBR即可"
-    red "    Debian或Ubuntu 也可以使用 本脚本里的新版BBR安装脚本安装原版BBR, 内核在5.4以上"
-    red "    安装内核有风险, 导致VPS无法启动, 请慎重使用"
+    green "    start installation Wireguard with Cloudflare Warp command line tool Wgcf ${versionWgcf} !"
+    red "    Need to install first BBR script install original version BBR, can't install bbr plus"
+    red "    Centos 7 recommended 4.11 kernel, Use the first BBR script of this script to install the original BBR"
+    red "    Debian or Ubuntu Can also be used The new BBR installation script in this script installs the original BBR, Kernel is above 5.4"
+    red "    Installing the kernel is risky, causing the VPS to fail to start, please use it with caution"
     green " =================================================="
 
-    green "当前Linux kernel devel 内核版本为: $(ls /usr/src/kernels)"
-    green "当前Linux内核版本为: $(uname -r)"
+    green "The current Linux kernel devel kernel version is: $(ls /usr/src/kernels)"
+    green "The current Linux kernel version is: $(uname -r)"
     echo ""
-    green "安装 Wireguard 需要保证kernel，kernel-devel，kernel-headers 版本一致"
+    green "To install Wireguard, you need to ensure that the versions of kernel, kernel-devel, and kernel-headers are consistent"
 
-	read -p "是否继续操作? 请先确认linux内核已正确安装 直接回车默认继续操作, 请输入[Y/n]?" isContinueInput
+	read -p "Do you want to continue? Please confirm that the linux kernel has been installed correctly and press Enter to continue the operation by default, please enter[Y/n]?" isContinueInput
 	isContinueInput=${isContinueInput:-Y}
 
 	if [[ $isContinueInput == [Yy] ]]; then
 		echo ""
 	else 
-        green " 请先用本脚本第一项安装BBR的脚本 安装原版BBR, linux内核更改为4.11 !"
+        green " Please use the first item of this script to install the BBR script to install the original version of BBR, and change the linux kernel to 4.11!"
 		exit
 	fi
 
@@ -651,7 +651,7 @@ function installWireguard(){
         exit
     fi
 
-    green "  开始安装 Wireguard !"
+    green "  Start installing Wireguard!"
     bash <(curl -sSL https://raw.githubusercontent.com/jinwyp/one_click_script/master/wireguard.sh)
     # wget -O wireguard.sh -N --no-check-certificate "https://raw.githubusercontent.com/teddysun/across/master/wireguard.sh" && chmod 755 wireguard.sh && ./wireguard.sh -r
 
@@ -672,7 +672,7 @@ function installWireguard(){
     ${sudoCmd} wg-quick up wgcf
 
     echo 
-    green "  验证 Wireguard 是否启动正常 检测是否使用 CLOUDFLARE 的 ipv6 访问 !"
+    green "  Verify whether Wireguard starts normally. Check whether CLOUDFLARE's ipv6 access is used!"
     isWireguardIpv6Working=$(curl -6 ip.p3terx.com | grep CLOUDFLARENET )
     echo
     echo "curl -6 ip.p3terx.com"
@@ -682,13 +682,13 @@ function installWireguard(){
 
 
 	if [[ -n "$isWireguardIpv6Working" ]]; then	
-		green " Wireguard 启动正常! "
+		green " Wireguard starts normally! "
         echo
 	else 
 		green " ================================================== "
-		red " Wireguard 通过 curl -6 ip.p3terx.com, 检测使用CLOUDFLARENET的IPV6 访问失败"
-        red " 请检查linux 内核安装是否正确, 卸载后重新安装"
-        red " 安装会继续运行, 也有可能安装成功, 只是IPV6 没有使用"
+		red " Wireguard uses curl -6 ip.p3terx.com to detect IPV6 access failure using CLOUDFLARENET"
+        red " Please check if the linux kernel is installed correctly, uninstall and reinstall"
+        red " The installation will continue to run, or the installation may be successful, but IPV6 is not used"
 		green " ================================================== "
 		
 	fi
@@ -696,20 +696,20 @@ function installWireguard(){
 
     ${sudoCmd} systemctl daemon-reload
 
-    # 启用守护进程
+    # Enable daemon
     ${sudoCmd} systemctl start wg-quick@wgcf
 
-    # 设置开机启动
+    # Set boot up
     ${sudoCmd} systemctl enable wg-quick@wgcf
 
 
     green " ================================================== "
-    green "  Wireguard 和 Cloudflare Warp 命令行工具 Wgcf ${versionWgcf} 安装成功 !"
-    green "  Wireguard 停止命令: systemctl stop wg-quick@wgcf  启动命令: systemctl start wg-quick@wgcf  重启命令: systemctl restart wg-quick@wgcf"
-    green "  Wireguard 查看日志: journalctl -n 50 -u wg-quick@wgcf 查看运行状态: systemctl status wg-quick@wgcf"
+    green "  Wireguard with Cloudflare Warp Command line tool Wgcf ${versionWgcf} Successful installation !"
+    green "  Wireguard Stop: systemctl stop wg-quick@wgcf  Start: systemctl start wg-quick@wgcf  Restart: systemctl restart wg-quick@wgcf"
+    green "  Wireguard view log: journalctl -n 50 -u wg-quick@wgcf Check running status: systemctl status wg-quick@wgcf"
     
-    green "  用本脚本安装v2ray或xray 可以选择是否解除 google 验证码 和 Netflix 的限制 !"
-    green "  其他脚本安装的v2ray或xray 请自行替换 v2ray或xray 配置文件!"
+    green "  Use this script to install v2ray or xray, you can choose whether to lift the google verification code and Netflix restrictions!"
+    green "  For v2ray or xray installed by other scripts, please replace the v2ray or xray configuration file yourself!"
     green " ================================================== "
     
 }
@@ -717,14 +717,14 @@ function installWireguard(){
 
 function removeWireguard(){
     green " ================================================== "
-    red " 准备卸载已安装 Wireguard 和 Cloudflare Warp 命令行工具 Wgcf "
+    red " Prepare to uninstall the installed Wireguard and Cloudflare Warp command line tool Wgcf "
     green " ================================================== "
 
     if [ -f "${configWgcfBinPath}/wgcf" ]; then
         ${sudoCmd} systemctl stop wg-quick@wgcf.service
         ${sudoCmd} systemctl disable wg-quick@wgcf.service
     else 
-        red " 系统没有安装 Wireguard 和 Wgcf, 退出卸载"
+        red " The system does not have Wireguard and Wgcf installed, exit to uninstall"
         exit
     fi
 
@@ -745,7 +745,7 @@ function removeWireguard(){
     modprobe -r wireguard
 
     green " ================================================== "
-    green "  Wireguard 和 Cloudflare Warp 命令行工具 Wgcf 卸载完毕 !"
+    green "  Wireguard and Cloudflare Warp command line tool Wgcf are uninstalled!"
     green " ================================================== "
 
   
@@ -832,19 +832,19 @@ configReadme=${HOME}/trojan_v2ray_readme.txt
 function downloadAndUnzip(){
     if [ -z $1 ]; then
         green " ================================================== "
-        green "     下载文件地址为空!"
+        green "     The download file address is empty!"
         green " ================================================== "
         exit
     fi
     if [ -z $2 ]; then
         green " ================================================== "
-        green "     目标路径地址为空!"
+        green "     The destination path address is empty!"
         green " ================================================== "
         exit
     fi
     if [ -z $3 ]; then
         green " ================================================== "
-        green "     下载文件的文件名为空!"
+        green "     The file name of the downloaded file is empty!"
         green " ================================================== "
         exit
     fi
@@ -852,13 +852,13 @@ function downloadAndUnzip(){
     mkdir -p ${configDownloadTempPath}
 
     if [[ $3 == *"tar.xz"* ]]; then
-        green "===== 下载并解压tar文件: $3 "
+        green "===== Download and unzip the tar file: $3 "
         wget -O ${configDownloadTempPath}/$3 $1
         tar xf ${configDownloadTempPath}/$3 -C ${configDownloadTempPath}
         mv ${configDownloadTempPath}/trojan/* $2
         rm -rf ${configDownloadTempPath}/trojan
     else
-        green "===== 下载并解压zip文件:  $3 "
+        green "===== Download and unzip the zip file:  $3 "
         wget -O ${configDownloadTempPath}/$3 $1
         unzip -d $2 ${configDownloadTempPath}/$3
     fi
@@ -942,8 +942,8 @@ function isTrojanGoInstall(){
 
 function compareRealIpWithLocalIp(){
 
-    yellow " 是否检测域名指向的IP正确 (默认检测，如果域名指向的IP不是本机器IP则无法继续. 如果已开启CDN不方便关闭可以选择否)"
-    read -p "是否检测域名指向的IP正确? 请输入[Y/n]?" isDomainValidInput
+    yellow " Check whether the IP pointed by the domain name is correct (default detection, if the IP pointed by the domain name is not the IP of this machine, you cannot continue. If the CDN is turned on, it is inconvenient to turn it off, you can choose No)"
+    read -p "Check whether the IP pointed by the domain name is correct? Please enter[Y/n]?" isDomainValidInput
     isDomainValidInput=${isDomainValidInput:-Y}
 
     if [[ $isDomainValidInput == [Yy] ]]; then
@@ -953,31 +953,31 @@ function compareRealIpWithLocalIp(){
             configNetworkLocalIp=`curl v4.ident.me`
 
             green " ================================================== "
-            green "     域名解析地址为 ${configNetworkRealIp}, 本VPS的IP为 ${configNetworkLocalIp}. "
+            green "     The domain name resolution address is ${configNetworkRealIp}, 本VPS的IP为 ${configNetworkLocalIp}. "
             green " ================================================== "
 
             if [[ ${configNetworkRealIp} == ${configNetworkLocalIp} ]] ; then
                 green " ================================================== "
-                green "     域名解析的IP正常!"
+                green "     The IP resolved by the domain name is normal!"
                 green " ================================================== "
                 true
             else
                 green " ================================================== "
-                red "     域名解析地址与本VPS IP地址不一致!"
-                red "     本次安装失败，请确保域名解析正常, 请检查域名和DNS是否生效!"
+                red "     The domain name resolution address is inconsistent with the VPS IP address!"
+                red "     This installation failed, please make sure that the domain name resolution is normal, please check whether the domain name and DNS are valid!"
                 green " ================================================== "
                 false
             fi
         else
             green " ================================================== "        
-            red "     域名输入错误!"
+            red "     The domain name is entered incorrectly!"
             green " ================================================== "        
             false
         fi
         
     else
         green " ================================================== "
-        green "     不检测域名解析是否正确!"
+        green "     Do not check whether the domain name resolution is correct!"
         green " ================================================== "
         true
     fi
@@ -985,7 +985,7 @@ function compareRealIpWithLocalIp(){
 
 function getHTTPSCertificate(){
 
-    # 申请https证书
+    # Apply for https certificate
 	mkdir -p ${configSSLCertPath}
 	mkdir -p ${configWebsitePath}
 	curl https://get.acme.sh | sh
@@ -993,7 +993,7 @@ function getHTTPSCertificate(){
     green "=========================================="
 
 	if [[ $1 == "standalone" ]] ; then
-	    green "  开始重新申请证书 acme.sh standalone mode !"
+	    green "  Start to re-apply for a certificate acme.sh standalone mode !"
 	    ~/.acme.sh/acme.sh  --issue  -d ${configSSLDomain}  --standalone
 
         ~/.acme.sh/acme.sh  --installcert  -d ${configSSLDomain}   \
@@ -1001,7 +1001,7 @@ function getHTTPSCertificate(){
         --fullchain-file ${configSSLCertPath}/fullchain.cer
 
 	else
-	    green "  开始第一次申请证书 acme.sh nginx mode !"
+	    green "  Start applying for a certificate for the first time acme.sh nginx mode !"
         ~/.acme.sh/acme.sh  --issue  -d ${configSSLDomain}  --webroot ${configWebsitePath}/
 
         ~/.acme.sh/acme.sh  --installcert  -d ${configSSLDomain}   \
@@ -1016,12 +1016,12 @@ function getHTTPSCertificate(){
 function installWebServerNginx(){
 
     green " ================================================== "
-    yellow "     开始安装 Web服务器 nginx !"
+    yellow "     Start to install the web server nginx !"
     green " ================================================== "
 
     if test -s ${nginxConfigPath}; then
         green " ================================================== "
-        red "     Nginx 已存在, 退出安装!"
+        red "     Nginx Already exist, exit the installation!"
         green " ================================================== "
         exit
     fi
@@ -1200,7 +1200,7 @@ EOF
 
 
 
-    # 下载伪装站点 并设置伪装网站
+    # Download the fake site and set the fake site
     rm -rf ${configWebsitePath}/*
     mkdir -p ${configWebsiteDownloadPath}
 
@@ -1214,31 +1214,31 @@ EOF
     ${sudoCmd} systemctl start nginx.service
 
     green " ================================================== "
-    green "       Web服务器 nginx 安装成功!!"
-    green "    伪装站点为 http://${configSSLDomain}"
+    green "       The web server nginx is installed successfully!!"
+    green "    The fake site is http://${configSSLDomain}"
 
 	if [[ $1 == "trojan-web" ]] ; then
-	    yellow "    Trojan-web ${versionTrojanWeb} 可视化管理面板地址  http://${configSSLDomain}/${configTrojanWebNginxPath} "
-	    green "    Trojan-web 可视化管理面板 可执行文件路径 ${configTrojanWebPath}/trojan-web"
-	    green "    Trojan 服务器端可执行文件路径 /usr/bin/trojan/trojan"
-	    green "    Trojan 服务器端配置路径 /usr/local/etc/trojan/config.json "
-	    green "    Trojan-web 停止命令: systemctl stop trojan-web.service  启动命令: systemctl start trojan-web.service  重启命令: systemctl restart trojan-web.service"
-	    green "    Trojan 停止命令: systemctl stop trojan.service  启动命令: systemctl start trojan.service  重启命令: systemctl restart trojan.service"
+	    yellow "    Trojan-web ${versionTrojanWeb} Visual management panel address  http://${configSSLDomain}/${configTrojanWebNginxPath} "
+	    green "    Trojan-web Visual management panel executable file path ${configTrojanWebPath}/trojan-web"
+	    green "    Trojan Server-side executable file path /usr/bin/trojan/trojan"
+	    green "    Trojan Server-side configuration path /usr/local/etc/trojan/config.json "
+	    green "    Trojan-web Stop: systemctl stop trojan-web.service  Start: systemctl start trojan-web.service  Restart: systemctl restart trojan-web.service"
+	    green "    Trojan Stop: systemctl stop trojan.service  Start: systemctl start trojan.service  Restart: systemctl restart trojan.service"
 	fi
 
-    green "    伪装站点的静态html内容放置在目录 ${configWebsitePath}, 可自行更换网站内容!"
-	green "    nginx 配置路径 ${nginxConfigPath} "
-	green "    nginx 访问日志 ${nginxAccessLogFilePath} "
-	green "    nginx 错误日志 ${nginxErrorLogFilePath} "
-	green "    nginx 停止命令: systemctl stop nginx.service  启动命令: systemctl start nginx.service  重启命令: systemctl restart nginx.service"
+    green "    The static html content of the fake site is placed in the directory ${configWebsitePath}, You can change the content of the website yourself!"
+	green "    nginx config path ${nginxConfigPath} "
+	green "    nginx access log ${nginxAccessLogFilePath} "
+	green "    nginx error log ${nginxErrorLogFilePath} "
+	green "    nginx Stop: systemctl stop nginx.service  Start: systemctl start nginx.service  Restart: systemctl restart nginx.service"
     green " ================================================== "
 
     cat >> ${configReadme} <<-EOF
 
-Web服务器 nginx 安装成功! 伪装站点为 ${configSSLDomain}   
-伪装站点的静态html内容放置在目录 ${configWebsitePath}, 可自行更换网站内容.
-nginx 配置路径 ${nginxConfigPath}, nginx 访问日志 ${nginxAccessLogFilePath}, nginx 错误日志 ${nginxErrorLogFilePath}
-nginx 停止命令: systemctl stop nginx.service  启动命令: systemctl start nginx.service  重启命令: systemctl restart nginx.service
+Webserver nginx install successful! disguised website is ${configSSLDomain}   
+The static html content of the fake site is placed in the directory ${configWebsitePath}, You can change the content of the website by yourself.
+nginx config path ${nginxConfigPath}, nginx access log ${nginxAccessLogFilePath}, nginx error log ${nginxErrorLogFilePath}
+nginx Stop: systemctl stop nginx.service  Start: systemctl start nginx.service  Restart: systemctl restart nginx.service
 
 EOF
 
@@ -1246,8 +1246,8 @@ EOF
 	if [[ $1 == "trojan-web" ]] ; then
         cat >> ${configReadme} <<-EOF
 
-安装的Trojan-web ${versionTrojanWeb} 可视化管理面板,访问地址  ${configSSLDomain}/${configTrojanWebNginxPath}
-Trojan-web 停止命令: systemctl stop trojan-web.service  启动命令: systemctl start trojan-web.service  重启命令: systemctl restart trojan-web.service
+Trojan-web installed ${versionTrojanWeb} Visual management panel, access address  ${configSSLDomain}/${configTrojanWebNginxPath}
+Trojan-web Stop: systemctl stop trojan-web.service  Start: systemctl start trojan-web.service  Restart: systemctl restart trojan-web.service
 
 
 EOF
@@ -1260,7 +1260,7 @@ function removeNginx(){
     ${sudoCmd} systemctl stop nginx.service
 
     green " ================================================== "
-    red " 准备卸载已安装的nginx"
+    red " Ready to uninstall the installed nginx"
     green " ================================================== "
 
     if [ "$osRelease" == "centos" ]; then
@@ -1283,7 +1283,7 @@ function removeNginx(){
     rm -rf ${configDownloadTempPath}
 
     green " ================================================== "
-    green "  Nginx 卸载完毕 !"
+    green "  Nginx Uninstallation is complete!"
     green " ================================================== "
 }
 
@@ -1295,9 +1295,9 @@ function installTrojanWholeProcess(){
     installPackage
 
     green " ================================================== "
-    yellow " 请输入绑定到本VPS的域名 例如www.xxx.com: (此步骤请关闭CDN后安装)"
+    yellow " Please enter the domain name bound to this VPS, such as www.xxx.com: (Please close CDN and install after this step)"
     if [[ $1 == "repair" ]] ; then
-        blue " 务必与之前安装失败时使用的域名一致"
+        blue " It must be the same as the domain name used when the previous installation failed"
     fi
     green " ================================================== "
 
@@ -1319,7 +1319,7 @@ function installTrojanWholeProcess(){
 
         if test -s ${configSSLCertPath}/fullchain.cer; then
             green " ================================================== "
-            green "     SSL证书已检测到获取成功!"
+            green "     The SSL certificate has been detected successfully!"
             green " ================================================== "
 
             if [ "$isNginxWithSSL" = "no" ] ; then
@@ -1329,11 +1329,11 @@ function installTrojanWholeProcess(){
             fi
         else
             red "==================================="
-            red " https证书没有申请成功，安装失败!"
-            red " 请检查域名和DNS是否生效, 同一域名请不要一天内多次申请!"
-            red " 请检查80和443端口是否开启, VPS服务商可能需要添加额外防火墙规则，例如阿里云、谷歌云等!"
-            red " 重启VPS, 重新执行脚本, 可重新选择修复证书选项再次申请证书 ! "
-            red " 可参考 https://www.v2rayssr.com/trojan-2.html "
+            red " The https certificate was not successfully applied, and the installation failed!"
+            red " Please check whether the domain name and DNS are valid, please do not apply for the same domain name multiple times in one day!"
+            red " Please check whether ports 80 and 443 are open, VPS service providers may need to add additional firewall rules, such as Alibaba Cloud, Google Cloud, etc.!"
+            red " Restart the VPS, re-execute the script, and re-select the repair certificate option to apply for the certificate again!"
+            red " Can refer to https://www.v2rayssr.com/trojan-2.html"
             red "==================================="
             exit
         fi
@@ -1362,15 +1362,15 @@ function installTrojanServer(){
 
     if [[ -f "${configTrojanBasePath}/trojan${promptInfoTrojanName}" ]]; then
         green " =================================================="
-        green "  已安装过 Trojan${promptInfoTrojanName} , 退出安装 !"
+        green "  Trojan${promptInfoTrojanName} has been installed, exit the installation!"
         green " =================================================="
         exit
     fi
 
 
     green " =================================================="
-    green " 开始安装 Trojan${promptInfoTrojanName} Version: ${configTrojanBaseVersion} !"
-    yellow " 请输入trojan密码的前缀? (会生成若干随机密码和带有该前缀的密码)"
+    green " Start installing Trojan${promptInfoTrojanName} Version: ${configTrojanBaseVersion}!"
+    yellow " Please enter the prefix of the trojan password? (A number of random passwords and passwords with this prefix will be generated)"
     green " =================================================="
 
     read configTrojanPasswordPrefixInput
@@ -1398,7 +1398,7 @@ function installTrojanServer(){
 
     if [ "$isTrojanGo" = "no" ] ; then
 
-        # 增加trojan 服务器端配置
+        # Add trojan server configuration
 	    cat > ${configTrojanBasePath}/server.json <<-EOF
 {
     "run_type": "server",
@@ -1544,7 +1544,7 @@ function installTrojanServer(){
 EOF
 
         rm /etc/systemd/system/trojan.service   
-        # 增加启动脚本
+        # Add startup script
         cat > ${osSystemMdPath}trojan.service <<-EOF
 [Unit]
 Description=trojan
@@ -1568,7 +1568,7 @@ EOF
 
     if [ "$isTrojanGo" = "yes" ] ; then
 
-        # 增加trojan 服务器端配置
+        # Add trojan server configuration
 	    cat > ${configTrojanBasePath}/server.json <<-EOF
 {
     "run_type": "server",
@@ -1720,7 +1720,7 @@ EOF
 }
 EOF
 
-        # 增加启动脚本
+        # Add startup script
         cat > ${osSystemMdPath}trojan-go.service <<-EOF
 [Unit]
 Description=trojan-go
@@ -1747,7 +1747,7 @@ EOF
 
 
 
-    # 下载并制作 trojan windows 客户端的命令行启动文件
+    # Download and make the command line startup file of the trojan windows client
     rm -rf ${configTrojanBasePath}/trojan-win-cli
     rm -rf ${configTrojanBasePath}/trojan-win-cli-temp
     mkdir -p ${configTrojanBasePath}/trojan-win-cli-temp
@@ -1807,7 +1807,7 @@ EOF
 
 
 
-    # 设置 cron 定时任务
+    # Set up cron timing tasks
     # https://stackoverflow.com/questions/610839/how-can-i-programmatically-create-a-new-cron-job
 
     # (crontab -l 2>/dev/null | grep -v '^[a-zA-Z]'; echo "15 4 * * 0,1,2,3,4,5,6 systemctl restart trojan.service") | sort - | uniq - | crontab -
@@ -1815,56 +1815,56 @@ EOF
 
 
 	green "======================================================================"
-	green "    Trojan${promptInfoTrojanName} Version: ${configTrojanBaseVersion} 安装成功 !"
+	green "    Trojan${promptInfoTrojanName} Version: ${configTrojanBaseVersion} Successful installation !"
 
     if [[ ${isInstallNginx} == "true" ]]; then
-        green "    伪装站点为 http://${configSSLDomain}"
-	    green "    伪装站点的静态html内容放置在目录 ${configWebsitePath}, 可自行更换网站内容!"
+        green "    The fake site is http://${configSSLDomain}"
+	    green "    The static html content of the fake site is placed in the directory ${configWebsitePath}, You can change the content of the website yourself!"
     fi
 
-	red "    Trojan 服务器端配置路径 ${configTrojanBasePath}/server.json "
-	red "    Trojan 访问日志 ${configTrojanLogFile} 或运行 journalctl -n 50 -u trojan${promptInfoTrojanName}.service 查看 !"
-	green "    Trojan 停止命令: systemctl stop trojan${promptInfoTrojanName}.service  启动命令: systemctl start trojan${promptInfoTrojanName}.service  重启命令: systemctl restart trojan${promptInfoTrojanName}.service"
-	green "    Trojan 服务器 每天会自动重启,防止内存泄漏. 运行 crontab -l 命令 查看定时重启命令 !"
+	red "    Trojan Server-side configuration path ${configTrojanBasePath}/server.json "
+	red "    Trojan Access log ${configTrojanLogFile} Or run journalctl -n 50 -u trojan${promptInfoTrojanName}.service Check out!"
+	green "    Trojan Stop: systemctl stop trojan${promptInfoTrojanName}.service  Start: systemctl start trojan${promptInfoTrojanName}.service  Restart: systemctl restart trojan${promptInfoTrojanName}.service"
+	green "    Trojan The server will automatically restart every day to prevent memory leaks. Run crontab -l Command View timing restart command !"
 	green "======================================================================"
 	blue  "----------------------------------------"
-	yellow "Trojan${promptInfoTrojanName} 配置信息如下, 请自行复制保存, 密码任选其一 !"
-	yellow "服务器地址: ${configSSLDomain}  端口: $configV2rayTrojanPort"
-	yellow "密码1: ${trojanPassword1}"
-	yellow "密码2: ${trojanPassword2}"
-	yellow "密码3: ${trojanPassword3}"
-	yellow "密码4: ${trojanPassword4}"
-	yellow "密码5: ${trojanPassword5}"
-	yellow "密码6: ${trojanPassword6}"
-	yellow "密码7: ${trojanPassword7}"
-	yellow "密码8: ${trojanPassword8}"
-	yellow "密码9: ${trojanPassword9}"
-	yellow "密码10: ${trojanPassword10}"
-	yellow "您指定前缀的密码若干: 从 ${configTrojanPasswordPrefixInput}202010 到 ${configTrojanPasswordPrefixInput}202099 都可以使用"
+	yellow "Trojan${promptInfoTrojanName} The configuration information is as follows, please copy and save by yourself, and choose one of the passwords!"
+	yellow "server address: ${configSSLDomain}  port: $configV2rayTrojanPort"
+	yellow "password1: ${trojanPassword1}"
+	yellow "password2: ${trojanPassword2}"
+	yellow "password3: ${trojanPassword3}"
+	yellow "password4: ${trojanPassword4}"
+	yellow "password5: ${trojanPassword5}"
+	yellow "password6: ${trojanPassword6}"
+	yellow "password7: ${trojanPassword7}"
+	yellow "password8: ${trojanPassword8}"
+	yellow "password9: ${trojanPassword9}"
+	yellow "password10: ${trojanPassword10}"
+	yellow "The number of passwords you specify the prefix: from ${configTrojanPasswordPrefixInput}202010 To ${configTrojanPasswordPrefixInput}202099 Can be used"
 
     if [[ ${isTrojanGoSupportWebsocket} == "true" ]]; then
-        yellow "Websocket path 路径为: /${configTrojanGoWebSocketPath}"
-        # yellow "Websocket obfuscation_password 混淆密码为: ${trojanPasswordWS}"
-        yellow "Websocket 双重TLS为: true 开启"
+        yellow "Websocket path The path is: /${configTrojanGoWebSocketPath}"
+        # yellow "Websocket obfuscation_password The obfuscated password is: ${trojanPasswordWS}"
+        yellow "Websocket Double TLS is: true open"
     fi
 
 	blue  "----------------------------------------"
 	green "======================================================================"
-	green "请下载相应的trojan客户端:"
-	yellow "1 Windows 客户端下载：http://${configSSLDomain}/download/${configTrojanWindowsCliPrefixPath}/v2ray-windows.zip"
+	green "Please download the corresponding trojan client:"
+	yellow "1 Windows client：http://${configSSLDomain}/download/${configTrojanWindowsCliPrefixPath}/v2ray-windows.zip"
 	#yellow "  Windows 客户端另一个版本下载：http://${configSSLDomain}/download/${configTrojanWindowsCliPrefixPath}/trojan-Qt5-windows.zip"
-	yellow "  Windows 客户端命令行版本下载：http://${configSSLDomain}/download/${configTrojanWindowsCliPrefixPath}/trojan-win-cli.zip"
-	yellow "  Windows 客户端命令行版本需要搭配浏览器插件使用，例如switchyomega等! "
-    yellow "2 MacOS 客户端下载：http://${configSSLDomain}/download/${configTrojanWindowsCliPrefixPath}/trojan-mac.zip"
+	yellow "  Windows client cmdline：http://${configSSLDomain}/download/${configTrojanWindowsCliPrefixPath}/trojan-win-cli.zip"
+	yellow "  Windows The client command line version needs to be used with browser plug-ins, such as switchyomega, etc.! "
+    yellow "2 MacOS client：http://${configSSLDomain}/download/${configTrojanWindowsCliPrefixPath}/trojan-mac.zip"
     #yellow "  MacOS 客户端Trojan-Qt5下载：http://${configSSLDomain}/download/${configTrojanWindowsCliPrefixPath}/trojan-Qt5-mac.zip"
-    yellow "3 Android 客户端下载 https://github.com/trojan-gfw/igniter/releases "
-    yellow "  Android 另一个客户端下载 https://github.com/2dust/v2rayNG/releases "
-    yellow "  Android 客户端Clash下载 https://github.com/Kr328/ClashForAndroid/releases "
-    yellow "4 iOS 客户端 请安装小火箭 https://shadowsockshelp.github.io/ios/ "
-    yellow "  iOS 请安装小火箭另一个地址 https://lueyingpro.github.io/shadowrocket/index.html "
-    yellow "  iOS 安装小火箭遇到问题 教程 https://github.com/shadowrocketHelp/help/ "
+    yellow "3 Android client https://github.com/trojan-gfw/igniter/releases "
+    yellow "  Android another client https://github.com/2dust/v2rayNG/releases "
+    yellow "  Android client Clash https://github.com/Kr328/ClashForAndroid/releases "
+    yellow "4 iOS Client please install Little Rocket https://shadowsockshelp.github.io/ios/ "
+    yellow "  iOS Please install another address of Little Rocket https://lueyingpro.github.io/shadowrocket/index.html "
+    yellow "  iOS Trouble with installing a small rocket tutorial https://github.com/shadowrocketHelp/help/ "
     green "======================================================================"
-	green "教程与其他资源:"
+	green "Tutorials and other resources:"
 	green "访问 https://www.v2rayssr.com/trojan-1.html ‎ 下载 浏览器插件 客户端 及教程"
 	green "客户端汇总 https://tlanyan.me/trojan-clients-download ‎ 下载 trojan客户端"
     green "访问 https://westworldss.com/portal/page/download ‎ 下载 客户端 及教程"
@@ -1890,25 +1890,25 @@ EOF
 
     cat >> ${configReadme} <<-EOF
 
-Trojan${promptInfoTrojanName} Version: ${configTrojanBaseVersion} 安装成功 !
-Trojan${promptInfoTrojanName} 服务器端配置路径 ${configTrojanBasePath}/server.json
-Trojan${promptInfoTrojanName} 停止命令: systemctl stop trojan${promptInfoTrojanName}.service  启动命令: systemctl start trojan${promptInfoTrojanName}.service  重启命令: systemctl restart trojan${promptInfoTrojanName}.service
+Trojan${promptInfoTrojanName} Version: ${configTrojanBaseVersion} Successful installation !
+Trojan${promptInfoTrojanName} Server-side configuration path ${configTrojanBasePath}/server.json
+Trojan${promptInfoTrojanName} Stop: systemctl stop trojan${promptInfoTrojanName}.service  Start: systemctl start trojan${promptInfoTrojanName}.service  Restart: systemctl restart trojan${promptInfoTrojanName}.service
 
-Trojan${promptInfoTrojanName}服务器地址: ${configSSLDomain}  端口: $configV2rayTrojanPort
+Trojan${promptInfoTrojanName}server address: ${configSSLDomain}  port: $configV2rayTrojanPort
 
-密码1: ${trojanPassword1}
-密码2: ${trojanPassword2}
-密码3: ${trojanPassword3}
-密码4: ${trojanPassword4}
-密码5: ${trojanPassword5}
-密码6: ${trojanPassword6}
-密码7: ${trojanPassword7}
-密码8: ${trojanPassword8}
-密码9: ${trojanPassword9}
-密码10: ${trojanPassword10}
-您指定前缀的密码若干: 从 ${configTrojanPasswordPrefixInput}202010 到 ${configTrojanPasswordPrefixInput}202099 都可以使用
+password1: ${trojanPassword1}
+password2: ${trojanPassword2}
+password3: ${trojanPassword3}
+password4: ${trojanPassword4}
+password5: ${trojanPassword5}
+password6: ${trojanPassword6}
+password7: ${trojanPassword7}
+password8: ${trojanPassword8}
+password9: ${trojanPassword9}
+password10: ${trojanPassword10}
+The number of passwords you specify the prefix: from ${configTrojanPasswordPrefixInput}202010 To ${configTrojanPasswordPrefixInput}202099 Can be used
 
-如果是trojan-go开启了Websocket，那么Websocket path 路径为: /${configTrojanGoWebSocketPath}
+If trojan-go opens Websocket, then the Websocket path is: /${configTrojanGoWebSocketPath}
 
 
 EOF
@@ -1923,7 +1923,7 @@ function removeTrojan(){
     ${sudoCmd} systemctl disable trojan${promptInfoTrojanName}.service
 
     green " ================================================== "
-    red " 准备卸载已安装的trojan${promptInfoTrojanName}"
+    red " Ready to uninstall the installed trojan${promptInfoTrojanName}"
     green " ================================================== "
 
     rm -rf ${configTrojanBasePath}
@@ -1936,8 +1936,8 @@ function removeTrojan(){
     crontab -r
 
     green " ================================================== "
-    green "  trojan${promptInfoTrojanName} 和 nginx 卸载完毕 !"
-    green "  crontab 定时任务 删除完毕 !"
+    green "  trojan${promptInfoTrojanName} And nginx uninstallation is complete!"
+    green "  crontab Timed tasks are deleted!"
     green " ================================================== "
 }
 
@@ -1947,7 +1947,7 @@ function upgradeTrojan(){
     isTrojanGoInstall
 
     green " ================================================== "
-    green "     开始升级 Trojan${promptInfoTrojanName} Version: ${configTrojanBaseVersion}"
+    green "     Start to upgrade Trojan${promptInfoTrojanName} Version: ${configTrojanBaseVersion}"
     green " ================================================== "
 
     ${sudoCmd} systemctl stop trojan${promptInfoTrojanName}.service
@@ -1967,7 +1967,7 @@ function upgradeTrojan(){
     ${sudoCmd} systemctl start trojan${promptInfoTrojanName}.service
 
     green " ================================================== "
-    green "     升级成功 Trojan${promptInfoTrojanName} Version: ${configTrojanBaseVersion} !"
+    green "     update successed Trojan${promptInfoTrojanName} Version: ${configTrojanBaseVersion} !"
     green " ================================================== "
 
 }
@@ -1992,7 +1992,7 @@ function installV2ray(){
 
     if [ -f "${configV2rayPath}/v2ray" ] || [ -f "/usr/local/bin/v2ray" ] || [ -f "/usr/bin/v2ray" ]; then
         green " =================================================="
-        green "  已安装过 V2ray 或 Xray, 退出安装 !"
+        green "  V2ray or Xray has been installed, exit the installation!"
         green " =================================================="
         exit
     fi
@@ -2002,7 +2002,7 @@ function installV2ray(){
         promptInfoXrayName="xray"
         isXray="yes"
     else
-        read -p "是否使用Xray内核(默认为V2ray内核 )? 请输入[y/N]?" isV2rayOrXrayInput
+        read -p "Do you use Xray kernel (default is V2ray kernel)? Please enter[y/N]?" isV2rayOrXrayInput
         isV2rayOrXrayInput=${isV2rayOrXrayInput:-n}
 
         if [[ $isV2rayOrXrayInput == [Yy] ]]; then
@@ -2016,7 +2016,7 @@ function installV2ray(){
          configV2rayProtocol="vless"
     else 
 
-        read -p "是否使用VLESS协议(默认为VMess协议 )? 请输入[y/N]?" isV2rayUseVLessInput
+        read -p "Whether to use VLESS protocol (default is VMess protocol)? Please enter[y/N]?" isV2rayUseVLessInput
         isV2rayUseVLessInput=${isV2rayUseVLessInput:-n}
 
         if [[ $isV2rayUseVLessInput == [Yy] ]]; then
@@ -2030,7 +2030,7 @@ function installV2ray(){
 
 
 
-    read -p "是否使用IPV6 解锁Google 验证码 默认不解锁, 解锁需要配合wireguard )? 请输入[y/N]?" isV2rayUnlockGoogleInput
+    read -p "Do you use IPV6 to unlock the Google verification code? The default is not unlocked, and the unlocking requires wireguard)? Please enter[y/N]?" isV2rayUnlockGoogleInput
     isV2rayUnlockGoogleInput=${isV2rayUnlockGoogleInput:-n}
 
     V2rayUnlockText=""
@@ -2040,7 +2040,7 @@ function installV2ray(){
     fi
 
 
-    read -p "是否使用IPV6 解锁Netflix 默认不解锁, 解锁需要配合wireguard )? 请输入[y/N]?" isV2rayUnlockNetflixInput
+    read -p "Do you use IPV6 to unlock Netflix by default, it is not unlocked by default, and you need to cooperate with wireguard to unlock it? Please enter[y/N]?" isV2rayUnlockNetflixInput
     isV2rayUnlockNetflixInput=${isV2rayUnlockNetflixInput:-n}
     
     if [[ $isV2rayUnlockNetflixInput == [Yy] ]]; then
@@ -2056,14 +2056,14 @@ function installV2ray(){
     if [ "$isXray" = "no" ] ; then
         getTrojanAndV2rayVersion "v2ray"
         green " =================================================="
-        green "    开始安装 V2ray Version: ${versionV2ray} !"
+        green "    start installation V2ray Version: ${versionV2ray} !"
         green " =================================================="
         promptInfoXrayInstall="V2ray"
         promptInfoXrayVersion=${versionV2ray}
     else
         getTrojanAndV2rayVersion "xray"
         green " =================================================="
-        green "    开始安装 Xray Version: ${versionXray} !"
+        green "    start installation Xray Version: ${versionXray} !"
         green " =================================================="
         promptInfoXrayInstall="Xray"
         promptInfoXrayVersion=${versionXray}
@@ -2085,7 +2085,7 @@ function installV2ray(){
     fi
 
 
-    # 增加 v2ray 服务器端配置
+    # Add v2ray server configuration
 
     trojanPassword1=$(cat /dev/urandom | head -1 | md5sum | head -c 10)
     trojanPassword2=$(cat /dev/urandom | head -1 | md5sum | head -c 10)
@@ -2910,7 +2910,7 @@ EOF
 
 
 
-    # 增加 V2ray启动脚本
+    # Add V2ray startup script
     if [ "$isXray" = "no" ] ; then
     
         cat > ${osSystemMdPath}v2ray.service <<-EOF
@@ -2969,7 +2969,7 @@ EOF
 
 
 
-    # 增加客户端配置说明
+    # Add client configuration instructions
     if [[ ${isInstallNginx} == "true" ]]; then
         configV2rayPortShowInfo=443
         configV2rayIsTlsShowInfo="tls"
@@ -2986,18 +2986,18 @@ EOF
 
 
     cat > ${configV2rayPath}/clientConfig.json <<-EOF
-=========== ${promptInfoXrayInstall}客户端配置参数 =============
+=========== ${promptInfoXrayInstall}Client configuration parameters =============
 {
-    协议: ${configV2rayProtocol},
-    地址: ${configSSLDomain},
-    端口: ${configV2rayPortShowInfo},
+    protocol: ${configV2rayProtocol},
+    address: ${configSSLDomain},
+    port: ${configV2rayPortShowInfo},
     uuid: ${v2rayPassword1},
-    额外id: 0,  // AlterID 如果是Vless协议则不需要该项
-    加密方式: aes-128-gcm,  // 如果是Vless协议则为none
-    传输协议: ws,
-    WS路径:/${configV2rayWebSocketPath},
-    底层传输协议:${configV2rayIsTlsShowInfo},
-    别名:自己起个任意名称
+    Extra id: 0,  // AlterID If it is a Vless protocol, this item is not needed
+    Encryption: aes-128-gcm,  // If it is a Vless protocol, it is none
+    Transfer Protocol: ws,
+    WS path:/${configV2rayWebSocketPath},
+    Underlying transport protocol:${configV2rayIsTlsShowInfo},
+    Alias: give yourself any name
 }
 EOF
 
@@ -3005,47 +3005,47 @@ EOF
 
 if [[ "$configV2rayVlessMode" == "vmessws" ]]; then
     cat > ${configV2rayPath}/clientConfig.json <<-EOF
-当选择了17. 只安装v2ray VLess运行在443端口 (VLess-TCP-TLS) + (VMess-TCP-TLS) + (VMess-WS-TLS)  支持CDN, 不安装nginx
-=========== ${promptInfoXrayInstall}客户端 VLess-TCP-TLS 配置参数 =============
+When 17selected Only install v2ray VLess runs on port443 (VLess-TCP-TLS) + (VMess-TCP-TLS) + (VMess-WS-TLS) Support CDN, donot install nginx
+=========== ${promptInfoXrayInstall}Client VLess-TCP-TLS configuration parameters =============
 {
-    协议: VLess,
-    地址: ${configSSLDomain},
-    端口: ${configV2rayPortShowInfo},
+    protocol: VLess,
+    address: ${configSSLDomain},
+    port: ${configV2rayPortShowInfo},
     uuid: ${v2rayPassword1},
-    额外id: 0,  // AlterID 如果是Vless协议则不需要该项
-    加密方式: none,  // 如果是Vless协议则为none
-    传输协议: tcp ,
-    WS路径:无,
-    底层传输:tls,
-    别名:自己起个任意名称
+    Extra id: 0,  // AlterID If it is a Vless protocol, this item is not needed
+    Encryption: none,  // If it is a Vless protocol, it is none
+    Transfer Protocol: tcp ,
+    WS path: none,
+    Underlying transmission:tls,
+    Alias: give yourself any name
 }
 
-=========== ${promptInfoXrayInstall}客户端 VMess-WS-TLS 配置参数 支持CDN =============
+=========== ${promptInfoXrayInstall}Client VMess-WS-TLS configuration parameters support CDN =============
 {
-    协议: VMess,
-    地址: ${configSSLDomain},
-    端口: ${configV2rayPortShowInfo},
+    protocol: VMess,
+    address: ${configSSLDomain},
+    port: ${configV2rayPortShowInfo},
     uuid: ${v2rayPassword1},
-    额外id: 0,  // AlterID 如果是Vless协议则不需要该项
-    加密方式: none,  // 如果是Vless协议则为none
-    传输协议: ws,
-    WS路径:/${configV2rayWebSocketPath},
-    底层传输:tls,
-    别名:自己起个任意名称
+    Extra id: 0,  // AlterID If it is a Vless protocol, this item is not needed
+    Encryption: none,  // If it is a Vless protocol, it is none
+    Transfer Protocol: ws,
+    WS path:/${configV2rayWebSocketPath},
+    Underlying transmission:tls,
+    Alias: give yourself any name
 }
 
-=========== ${promptInfoXrayInstall}客户端 VMess-TCP-TLS 配置参数 支持CDN =============
+=========== ${promptInfoXrayInstall}Client VMess-TCP-TLS configuration parameters Support CDN =============
 {
-    协议: VMess,
-    地址: ${configSSLDomain},
-    端口: ${configV2rayPortShowInfo},
+    protocol: VMess,
+    address: ${configSSLDomain},
+    port: ${configV2rayPortShowInfo},
     uuid: ${v2rayPassword1},
-    额外id: 0,  // AlterID 如果是Vless协议则不需要该项
-    加密方式: none,  // 如果是Vless协议则为none
-    传输协议: tcp,
-    路径:/tcp${configV2rayWebSocketPath},
-    底层传输:tls,
-    别名:自己起个任意名称
+    Extra id: 0,  // AlterID If it is a Vless protocol, this item is not needed
+    Encryption: none,  // If it is a Vless protocol, it is none
+    Transfer Protocol: tcp,
+    path:/tcp${configV2rayWebSocketPath},
+    Underlying transmission:tls,
+    Alias: give yourself any name
 }
 EOF
 fi
@@ -3053,35 +3053,35 @@ fi
 
 if [[ "$configV2rayVlessMode" == "vlessws" ]]; then
     cat > ${configV2rayPath}/clientConfig.json <<-EOF
-当选择了16. 只安装v2ray VLess运行在443端口 (VLess-TCP-TLS) + (VLess-WS-TLS) 支持CDN, 不安装nginx
-=========== ${promptInfoXrayInstall}客户端 VLess-TCP-TLS 配置参数 =============
+When you select16. Only install v2ray VLess runs on port443 (VLess-TCP-TLS) + (VLess-WS-TLS) support CDN, donot install nginx
+=========== ${promptInfoXrayInstall}Client VLess-TCP-TLS configuration parameters =============
 {
-    协议: VLess,
-    地址: ${configSSLDomain},
-    端口: ${configV2rayPortShowInfo},
+    protocol: VLess,
+    address: ${configSSLDomain},
+    port: ${configV2rayPortShowInfo},
     uuid: ${v2rayPassword1},
-    额外id: 0,  // AlterID 如果是Vless协议则不需要该项
-    流控flow:  // 选择了16 为空
-    加密方式: none,  // 如果是Vless协议则为none
-    传输协议: tcp ,
-    WS路径:无,
-    底层传输协议:tls,   
-    别名:自己起个任意名称
+    Extra id: 0,  // AlterID If it is a Vless protocol, this item is not needed
+    Flow control:  // Selected16 is empty
+    Encryption: none,  // // If it is a Vless protocol, it is none
+    Transfer Protocol: tcp ,
+    WS path: none,
+    Underlying transport protocol:tls,   
+    Alias: give yourself any name
 }
 
-=========== ${promptInfoXrayInstall}客户端 VLess-WS-TLS 配置参数 支持CDN =============
+=========== ${promptInfoXrayInstall}Client VLess-WS-TLS configuration parameters Support CDN =============
 {
-    协议: VLess,
-    地址: ${configSSLDomain},
-    端口: ${configV2rayPortShowInfo},
+    protocol: VLess,
+    address: ${configSSLDomain},
+    port: ${configV2rayPortShowInfo},
     uuid: ${v2rayPassword1},
-    额外id: 0,  // AlterID 如果是Vless协议则不需要该项
-    流控flow:  // 选择了16 为空
-    加密方式: none,  // 如果是Vless协议则为none
-    传输协议: ws,
-    WS路径:/${configV2rayWebSocketPath},
-    底层传输:tls,     
-    别名:自己起个任意名称
+    Extra id: 0,  // AlterID If it is a Vless protocol, this item is not needed
+    Flow control:  // Selected16 is empty
+    Encryption: none,  // // If it is a Vless protocol, it is none
+    Transfer Protocol: ws,
+    WS path:/${configV2rayWebSocketPath},
+    Underlying transmission:tls,     
+    Alias: give yourself any name
 }
 EOF
 fi
@@ -3089,84 +3089,84 @@ fi
 
 if [[ "$configV2rayVlessMode" == "vlessonly" ]] || [[ "$configV2rayVlessMode" == "trojan" ]]; then
     cat > ${configV2rayPath}/clientConfig.json <<-EOF
-=========== ${promptInfoXrayInstall}客户端 VLess-TCP-TLS 配置参数 =============
+=========== ${promptInfoXrayInstall}Client VLess-TCP-TLS configuration parameters =============
 {
-    协议: VLess,
-    地址: ${configSSLDomain},
-    端口: ${configV2rayPortShowInfo},
+    protocol: VLess,
+    address: ${configSSLDomain},
+    port: ${configV2rayPortShowInfo},
     uuid: ${v2rayPassword1},
-    额外id: 0,  // AlterID 如果是Vless协议则不需要该项
-    流控flow: xtls-rprx-direct
-    加密方式: none,  // 如果是Vless协议则为none
-    传输协议: tcp ,
-    WS路径:无,
-    底层传输协议:xtls, 
-    别名:自己起个任意名称
+    Extra id: 0,  // AlterID If it is a Vless protocol, this item is not needed
+    Flow control: xtls-rprx-direct
+    Encryption: none,  // // If it is a Vless protocol, it is none
+    Transfer Protocol: tcp ,
+    WS path: none,
+    Underlying transport protocol:xtls, 
+    Alias: give yourself any name
 }
 
-=========== ${promptInfoXrayInstall}客户端 VLess-WS-TLS 配置参数 支持CDN =============
+=========== ${promptInfoXrayInstall}Client VLess-WS-TLS configuration parameters Support CDN =============
 {
-    协议: VLess,
-    地址: ${configSSLDomain},
-    端口: ${configV2rayPortShowInfo},
+    protocol: VLess,
+    address: ${configSSLDomain},
+    port: ${configV2rayPortShowInfo},
     uuid: ${v2rayPassword1},
-    额外id: 0,  // AlterID 如果是Vless协议则不需要该项
-    流控flow: xtls-rprx-direct // 选择了16 为空, 选择了20-23 为 xtls-rprx-direct
-    加密方式: none,  // 如果是Vless协议则为none
-    传输协议: ws,
-    WS路径:/${configV2rayWebSocketPath},
-    底层传输:tls,     
-    别名:自己起个任意名称
+    Extra id: 0,  // AlterID If it is a Vless protocol, this item is not needed
+    Flow control: xtls-rprx-direct // 16is selected as empty,20-23is selected as xtls-rprx-direct
+    Encryption: none,  // // If it is a Vless protocol, it is none
+    Transfer Protocol: ws,
+    WS path:/${configV2rayWebSocketPath},
+    Underlying transmission:tls,     
+    Alias: give yourself any name
 }
 EOF
 fi
 
 if [[ "$configV2rayVlessMode" == "vlesstrojan" ]]; then
     cat > ${configV2rayPath}/clientConfig.json <<-EOF
-=========== ${promptInfoXrayInstall}客户端 VLess-TCP-TLS 配置参数 =============
+=========== ${promptInfoXrayInstall}Client VLess-TCP-TLS configuration parameters =============
 {
-    协议: VLess,
-    地址: ${configSSLDomain},
-    端口: ${configV2rayPortShowInfo},
+    protocol: VLess,
+    address: ${configSSLDomain},
+    port: ${configV2rayPortShowInfo},
     uuid: ${v2rayPassword1},
-    额外id: 0,  // AlterID 如果是Vless协议则不需要该项
-    流控flow: xtls-rprx-direct
-    加密方式: none,  // 如果是Vless协议则为none
-    传输协议: tcp ,
-    WS路径:无,
-    底层传输协议:xtls, 
-    别名:自己起个任意名称
+    Extra id: 0,  // AlterID If it is a Vless protocol, this item is not needed
+    Flow control: xtls-rprx-direct
+    Encryption: none,  // // If it is a Vless protocol, it is none
+    Transfer Protocol: tcp ,
+    WS path: none,
+    Underlying transport protocol:xtls, 
+    Alias: give yourself any name
 }
 
-=========== ${promptInfoXrayInstall}客户端 VLess-WS-TLS 配置参数 支持CDN =============
+=========== ${promptInfoXrayInstall}Client VLess-WS-TLS configuration parameters Support CDN =============
 {
-    协议: VLess,
-    地址: ${configSSLDomain},
-    端口: ${configV2rayPortShowInfo},
+    protocol: VLess,
+    address: ${configSSLDomain},
+    port: ${configV2rayPortShowInfo},
     uuid: ${v2rayPassword1},
-    额外id: 0,  // AlterID 如果是Vless协议则不需要该项
-    流控flow: xtls-rprx-direct // 选择了16 为空, 选择了20-23 为 xtls-rprx-direct
-    加密方式: none,  // 如果是Vless协议则为none
-    传输协议: ws,
-    WS路径:/${configV2rayWebSocketPath},
-    底层传输:tls,     
-    别名:自己起个任意名称
+    Extra id: 0,  // AlterID If it is a Vless protocol, this item is not needed
+    Flow control: xtls-rprx-direct // choose16 to be empty, choose20-23 to be xtls-rprx-direct
+    Encryption: none,  // // If it is a Vless protocol, it is none
+    Transfer Protocol: ws,
+    WS path:/${configV2rayWebSocketPath},
+    Underlying transmission:tls,     
+    Alias: give yourself any name
 }
 
 
-Trojan${promptInfoTrojanName}服务器地址: ${configSSLDomain}  端口: $configV2rayTrojanPort
+Trojan${promptInfoTrojanName}server address: ${configSSLDomain}  port: $configV2rayTrojanPort
 
-密码1: ${trojanPassword1}
-密码2: ${trojanPassword2}
-密码3: ${trojanPassword3}
-密码4: ${trojanPassword4}
-密码5: ${trojanPassword5}
-密码6: ${trojanPassword6}
-密码7: ${trojanPassword7}
-密码8: ${trojanPassword8}
-密码9: ${trojanPassword9}
-密码10: ${trojanPassword10}
-您指定前缀的密码若干: 从 ${configTrojanPasswordPrefixInput}202010 到 ${configTrojanPasswordPrefixInput}202030 都可以使用
+password1: ${trojanPassword1}
+password2: ${trojanPassword2}
+password3: ${trojanPassword3}
+password4: ${trojanPassword4}
+password5: ${trojanPassword5}
+password6: ${trojanPassword6}
+password7: ${trojanPassword7}
+password8: ${trojanPassword8}
+password9: ${trojanPassword9}
+password10: ${trojanPassword10}
+The number of passwords you specify the prefix: from ${configTrojanPasswordPrefixInput}202010 TO ${configTrojanPasswordPrefixInput}202030 Can be used
 
 EOF
 fi
@@ -3175,74 +3175,74 @@ fi
 
 
 
-    # 设置 cron 定时任务
+    # Set up cron timing tasks
     # https://stackoverflow.com/questions/610839/how-can-i-programmatically-create-a-new-cron-job
 
     (crontab -l ; echo "20 4 * * 0,1,2,3,4,5,6 systemctl restart ${promptInfoXrayName}.service") | sort - | uniq - | crontab -
 
 
     green "======================================================================"
-    green "    ${promptInfoXrayInstall} Version: ${promptInfoXrayVersion} 安装成功 !"
+    green "    ${promptInfoXrayInstall} Version: ${promptInfoXrayVersion} Successful installation !"
 
     if [[ ${isInstallNginx} == "true" ]]; then
-        green "    伪装站点为 https://${configSSLDomain}!"
+        green "    The fake site is https://${configSSLDomain}!"
     fi
 	
-	red "    ${promptInfoXrayInstall} 服务器端配置路径 ${configV2rayPath}/config.json !"
-	red "    ${promptInfoXrayInstall} 访问日志 ${configV2rayAccessLogFilePath} !"
-	red "    ${promptInfoXrayInstall} 错误日志 ${configV2rayErrorLogFilePath} ! 或运行 journalctl -n 50 -u ${promptInfoXrayName}.service 查看 !"
-	green "    ${promptInfoXrayInstall} 停止命令: systemctl stop ${promptInfoXrayName}.service  启动命令: systemctl start ${promptInfoXrayName}.service  重启命令: systemctl restart ${promptInfoXrayName}.service"
+	red "    ${promptInfoXrayInstall} Server-side configuration path ${configV2rayPath}/config.json !"
+	red "    ${promptInfoXrayInstall} Access log ${configV2rayAccessLogFilePath} !"
+	red "    ${promptInfoXrayInstall} Error log ${configV2rayErrorLogFilePath} ! Or run journalctl -n 50 -u ${promptInfoXrayName}.service View !"
+	green "    ${promptInfoXrayInstall} Stop: systemctl stop ${promptInfoXrayName}.service  Start: systemctl start ${promptInfoXrayName}.service  Restart: systemctl restart ${promptInfoXrayName}.service"
 	# green "    caddy 停止命令: systemctl stop caddy.service  启动命令: systemctl start caddy.service  重启命令: systemctl restart caddy.service"
-	green "    ${promptInfoXrayInstall} 服务器 每天会自动重启,防止内存泄漏. 运行 crontab -l 命令 查看定时重启命令 !"
+	green "    ${promptInfoXrayInstall} The server will automatically restart every day to prevent memory leaks. run crontab -l Command View the timing restart command!"
 	green "======================================================================"
 	echo ""
-	yellow "${promptInfoXrayInstall} 配置信息如下, 请自行复制保存, 密码任选其一 (密码即用户ID或UUID) !!"
-	yellow "服务器地址: ${configSSLDomain}  端口: ${configV2rayPortShowInfo}"
-	yellow "用户ID或密码1: ${v2rayPassword1}"
-	yellow "用户ID或密码2: ${v2rayPassword2}"
-	yellow "用户ID或密码3: ${v2rayPassword3}"
-	yellow "用户ID或密码4: ${v2rayPassword4}"
-	yellow "用户ID或密码5: ${v2rayPassword5}"
-	yellow "用户ID或密码6: ${v2rayPassword6}"
-	yellow "用户ID或密码7: ${v2rayPassword7}"
-	yellow "用户ID或密码8: ${v2rayPassword8}"
-	yellow "用户ID或密码9: ${v2rayPassword9}"
-	yellow "用户ID或密码10: ${v2rayPassword10}"
+	yellow "${promptInfoXrayInstall} The configuration information is as follows, please copy and save it yourself, choose one of the passwords (password is user ID or UUID) !!"
+	yellow "server address: ${configSSLDomain}  port: ${configV2rayPortShowInfo}"
+	yellow "User ID or password 1: ${v2rayPassword1}"
+	yellow "User ID or password 2: ${v2rayPassword2}"
+	yellow "User ID or password 3: ${v2rayPassword3}"
+	yellow "User ID or password 4: ${v2rayPassword4}"
+	yellow "User ID or password 5: ${v2rayPassword5}"
+	yellow "User ID or password 6: ${v2rayPassword6}"
+	yellow "User ID or password 7: ${v2rayPassword7}"
+	yellow "User ID or password 8: ${v2rayPassword8}"
+	yellow "User ID or password 9: ${v2rayPassword9}"
+	yellow "User ID or password 10: ${v2rayPassword10}"
     echo ""
 	cat "${configV2rayPath}/clientConfig.json"
 	echo ""
     green "======================================================================"
-    green "请下载相应的 ${promptInfoXrayName} 客户端:"
-    yellow "1 Windows 客户端V2rayN下载：http://${configSSLDomain}/download/${configTrojanWindowsCliPrefixPath}/v2ray-windows.zip"
-    yellow "2 MacOS 客户端下载：http://${configSSLDomain}/download/${configTrojanWindowsCliPrefixPath}/v2ray-mac.zip"
-    yellow "3 Android 客户端下载 https://github.com/2dust/v2rayNG/releases"
+    green "Please download the corresponding ${promptInfoXrayName} Client:"
+    yellow "1 Windows Client V2rayN download：http://${configSSLDomain}/download/${configTrojanWindowsCliPrefixPath}/v2ray-windows.zip"
+    yellow "2 MacOS Client Downloads：http://${configSSLDomain}/download/${configTrojanWindowsCliPrefixPath}/v2ray-mac.zip"
+    yellow "3 Android Client Downloads https://github.com/2dust/v2rayNG/releases"
     #yellow "3 Android 客户端下载 http://${configSSLDomain}/download/${configTrojanWindowsCliPrefixPath}/v2ray-android.zip"
-    yellow "4 iOS 客户端 请安装小火箭 https://shadowsockshelp.github.io/ios/ "
-    yellow "  iOS 请安装小火箭另一个地址 https://lueyingpro.github.io/shadowrocket/index.html "
-    yellow "  iOS 安装小火箭遇到问题 教程 https://github.com/shadowrocketHelp/help/ "
-    yellow "其他客户端程序请看 https://www.v2fly.org/awesome/tools.html "
+    yellow "4 iOS Client please install Little Rocket https://shadowsockshelp.github.io/ios/ "
+    yellow "  iOS Please install another address of Little Rocket https://lueyingpro.github.io/shadowrocket/index.html "
+    yellow "  iOS Trouble with installing a small rocket tutorial https://github.com/shadowrocketHelp/help/ "
+    yellow "See other client programs https://www.v2fly.org/awesome/tools.html "
     green "======================================================================"
 
     cat >> ${configReadme} <<-EOF
 
-${promptInfoXrayInstall} Version: ${promptInfoXrayVersion} 安装成功 ! 
-${promptInfoXrayInstall} 服务器端配置路径 ${configV2rayPath}/config.json 
-${promptInfoXrayInstall} 访问日志 ${configV2rayAccessLogFilePath} , V2ray 错误日志 ${configV2rayErrorLogFilePath}
-${promptInfoXrayInstall} 停止命令: systemctl stop ${promptInfoXrayName}.service  启动命令: systemctl start ${promptInfoXrayName}.service  重启命令: systemctl restart ${promptInfoXrayName}.service
+${promptInfoXrayInstall} Version: ${promptInfoXrayVersion} Successful installation! 
+${promptInfoXrayInstall} Server-side configuration path ${configV2rayPath}/config.json 
+${promptInfoXrayInstall} Access log ${configV2rayAccessLogFilePath} , V2ray Error log ${configV2rayErrorLogFilePath}
+${promptInfoXrayInstall} Stop: systemctl stop ${promptInfoXrayName}.service  Start: systemctl start ${promptInfoXrayName}.service  Restart: systemctl restart ${promptInfoXrayName}.service
 
-${promptInfoXrayInstall} 配置信息如下, 请自行复制保存, 密码任选其一 (密码即用户ID或UUID) !
-服务器地址: ${configSSLDomain}  
-端口: ${configV2rayPortShowInfo}"
-用户ID或密码1: ${v2rayPassword1}"
-用户ID或密码2: ${v2rayPassword2}"
-用户ID或密码3: ${v2rayPassword3}"
-用户ID或密码4: ${v2rayPassword4}"
-用户ID或密码5: ${v2rayPassword5}"
-用户ID或密码6: ${v2rayPassword6}"
-用户ID或密码7: ${v2rayPassword7}"
-用户ID或密码8: ${v2rayPassword8}"
-用户ID或密码9: ${v2rayPassword9}"
-用户ID或密码10: ${v2rayPassword10}"
+${promptInfoXrayInstall} The configuration information is as follows, please copy and save by yourself, choose one of the passwords (password is user ID or UUID)!
+server address: ${configSSLDomain}  
+port: ${configV2rayPortShowInfo}"
+User ID or password1: ${v2rayPassword1}"
+User ID or password2: ${v2rayPassword2}"
+User ID or password3: ${v2rayPassword3}"
+User ID or password4: ${v2rayPassword4}"
+User ID or password5: ${v2rayPassword5}"
+User ID or password6: ${v2rayPassword6}"
+User ID or password7: ${v2rayPassword7}"
+User ID or password8: ${v2rayPassword8}"
+User ID or password9: ${v2rayPassword9}"
+User ID or password10: ${v2rayPassword10}"
 
 
 EOF
@@ -3258,7 +3258,7 @@ function removeV2ray(){
     fi
 
     green " ================================================== "
-    red " 准备卸载已安装 ${promptInfoXrayName} "
+    red " Ready to uninstall installed ${promptInfoXrayName} "
     green " ================================================== "
 
     ${sudoCmd} systemctl stop ${promptInfoXrayName}.service
@@ -3271,7 +3271,7 @@ function removeV2ray(){
     rm -f ${configV2rayErrorLogFilePath}
 
     green " ================================================== "
-    green "  ${promptInfoXrayName} 卸载完毕 !"
+    green "  ${promptInfoXrayName} Uninstall complete !"
     green " ================================================== "
 }
 
@@ -3285,12 +3285,12 @@ function upgradeV2ray(){
     if [ "$isXray" = "no" ] ; then
         getTrojanAndV2rayVersion "v2ray"
         green " =================================================="
-        green "       开始升级 V2ray Version: ${versionV2ray} !"
+        green "       Start to upgrade V2ray Version: ${versionV2ray} !"
         green " =================================================="
     else
         getTrojanAndV2rayVersion "xray"
         green " =================================================="
-        green "       开始升级 Xray Version: ${versionXray} !"
+        green "       Start to upgrade Xray Version: ${versionXray} !"
         green " =================================================="
     fi
 
@@ -3317,12 +3317,12 @@ function upgradeV2ray(){
 
     if [ "$isXray" = "no" ] ; then
         green " ================================================== "
-        green "     升级成功 V2ray Version: ${versionV2ray} !"
+        green "     update successed V2ray Version: ${versionV2ray} !"
         green " ================================================== "
     else
         getTrojanAndV2rayVersion "xray"
         green " =================================================="
-        green "     升级成功 Xray Version: ${versionXray} !"
+        green "     update successed Xray Version: ${versionXray} !"
         green " =================================================="
     fi
 }
@@ -3339,7 +3339,7 @@ function installTrojanWeb(){
 
     if [ -f "${configTrojanWebPath}/trojan-web" ] ; then
         green " =================================================="
-        green "  已安装过 Trojan-web 可视化管理面板, 退出安装 !"
+        green "  The Trojan-web visual management panel has been installed, exit the installation!"
         green " =================================================="
         exit
     fi
@@ -3349,7 +3349,7 @@ function installTrojanWeb(){
     installPackage
 
     green " ================================================== "
-    yellow " 请输入绑定到本VPS的域名 例如www.xxx.com: (此步骤请关闭CDN后安装)"
+    yellow " Please enter the domain name bound to this VPS such as www.xxx.com: (Please close CDN and install after this step)"
     green " ================================================== "
 
     read configSSLDomain
@@ -3357,14 +3357,14 @@ function installTrojanWeb(){
 
         getTrojanAndV2rayVersion "trojan-web"
         green " =================================================="
-        green "    开始安装 Trojan-web 可视化管理面板: ${versionTrojanWeb} !"
+        green "   Start to install the Trojan-web visual management panel: ${versionTrojanWeb} !"
         green " =================================================="
 
         mkdir -p ${configTrojanWebPath}
         wget -O ${configTrojanWebPath}/trojan-web --no-check-certificate "https://github.com/Jrohy/trojan/releases/download/v${versionTrojanWeb}/${downloadFilenameTrojanWeb}"
         chmod +x ${configTrojanWebPath}/trojan-web
 
-        # 增加启动脚本
+        # Add startup script
         cat > ${osSystemMdPath}trojan-web.service <<-EOF
 [Unit]
 Description=trojan-web
@@ -3388,9 +3388,9 @@ EOF
         ${sudoCmd} systemctl enable trojan-web.service
 
         green " =================================================="
-        green " Trojan-web 可视化管理面板: ${versionTrojanWeb} 安装成功!"
-        green " Trojan可视化管理面板地址 https://${configSSLDomain}/${configTrojanWebNginxPath}"
-        green " 开始运行命令 ${configTrojanWebPath}/trojan-web 进行初始化设置."
+        green " Trojan-web Visual management panel: ${versionTrojanWeb} Successful installation!"
+        green " Trojan visual management panel address https://${configSSLDomain}/${configTrojanWebNginxPath}"
+        green " Start running command ${configTrojanWebPath}/trojan-web Make initial settings."
         green " =================================================="
 
 
@@ -3399,7 +3399,7 @@ EOF
 
         installWebServerNginx "trojan-web"
 
-        # 命令补全环境变量
+        # Command completion environment variables
         echo "export PATH=$PATH:${configTrojanWebPath}" >> ${HOME}/.${osSystemShell}rc
 
         # (crontab -l ; echo '25 0 * * * "/root/.acme.sh"/acme.sh --cron --home "/root/.acme.sh" > /dev/null') | sort - | uniq - | crontab -
@@ -3414,45 +3414,45 @@ function removeTrojanWeb(){
     # wget -O trojan-web_install.sh -N --no-check-certificate "https://raw.githubusercontent.com/Jrohy/trojan/master/install.sh" && chmod +x trojan-web_install.sh && ./trojan-web_install.sh --remove
 
     green " ================================================== "
-    red " 准备卸载已安装 Trojan-web "
+    red " Ready to uninstall installed Trojan-web "
     green " ================================================== "
 
     ${sudoCmd} systemctl stop trojan.service
     ${sudoCmd} systemctl stop trojan-web.service
     ${sudoCmd} systemctl disable trojan-web.service
 
-    # 移除trojan web 管理程序  和数据库 leveldb文件
+    # Remove trojan web management program and database leveldb file
     # rm -f /usr/local/bin/trojan
     rm -rf ${configTrojanWebPath}
     rm -f ${osSystemMdPath}trojan-web.service
     rm -rf /var/lib/trojan-manager
 
-    # 移除trojan
+    # Remove trojan
     rm -rf /usr/bin/trojan
     rm -rf /usr/local/etc/trojan
     rm -f ${osSystemMdPath}trojan.service
 
-    # 移除trojan的专用数据库
+    # Remove trojan's dedicated database
     docker rm -f trojan-mysql
     docker rm -f trojan-mariadb
     rm -rf /home/mysql
     rm -rf /home/mariadb
 
 
-    # 移除环境变量
+    # Remove environment variables
     sed -i '/trojan/d' ${HOME}/.${osSystemShell}rc
 
     crontab -r
 
     green " ================================================== "
-    green "  Trojan-web 卸载完毕 !"
+    green "  Trojan-web Uninstall complete !"
     green " ================================================== "
 }
 
 function upgradeTrojanWeb(){
     getTrojanAndV2rayVersion "trojan-web"
     green " =================================================="
-    green "    开始升级 Trojan-web 可视化管理面板: ${versionTrojanWeb} !"
+    green "    Start to upgrade the Trojan-web visual management panel: ${versionTrojanWeb} !"
     green " =================================================="
 
     ${sudoCmd} systemctl stop trojan-web.service
@@ -3468,7 +3468,7 @@ function upgradeTrojanWeb(){
 
 
     green " ================================================== "
-    green "     升级成功 Trojan-web 可视化管理面板: ${versionTrojanWeb} !"
+    green "     Successfully upgraded Trojan-web visual management panel: ${versionTrojanWeb} !"
     green " ================================================== "
 }
 function runTrojanWebSSL(){
@@ -3492,21 +3492,21 @@ function installV2rayUI(){
     installPackage
 
     green " ================================================== "
-    yellow " 请输入绑定到本VPS的域名 例如www.xxx.com: (此步骤请关闭CDN后安装)"
+    yellow " Please enter the domain name bound to this VPS such as www.xxx.com: (Please close CDN and install after this step)"
     green " ================================================== "
 
     read configSSLDomain
     if compareRealIpWithLocalIp "${configSSLDomain}" ; then
 
         green " =================================================="
-        green "    开始安装 V2ray-UI 可视化管理面板 !"
+        green "    Start to install V2ray-UI visual management panel !"
         green " =================================================="
 
         wget -O v2_ui_install.sh -N --no-check-certificate "https://raw.githubusercontent.com/sprov065/v2-ui/master/install.sh" && chmod +x v2_ui_install.sh && ./v2_ui_install.sh
 
-        green " V2ray-UI 可视化管理面板地址 http://${configSSLDomain}:65432"
-        green " 请确保 65432 端口已经放行, 例如检查linux防火墙或VPS防火墙 65432 端口是否开启"
-        green " V2ray-UI 可视化管理面板 默认管理员用户 admin 密码 admin, 为保证安全,请登陆后尽快修改默认密码 "
+        green " V2ray-UI Visual management panel address http://${configSSLDomain}:65432"
+        green " Please make sure that port65432 has been released, forexample, check whether port65432 is open on Linux firewall or VPS firewall"
+        green " V2ray-UI visual management panel The default administrator user admin password is admin, to ensure security, please change the default password as soon as possible after loggingin "
         green " =================================================="
 
     else
@@ -3530,12 +3530,12 @@ function getHTTPSNoNgix(){
     installPackage
 
     green " ================================================== "
-    yellow " 请输入绑定到本VPS的域名 例如www.xxx.com: (此步骤请关闭CDN后和nginx后安装 避免80端口占用导致申请证书失败)"
+    yellow " Please enter the domain name bound to this VPS, such as www.xxx.com: (For this step, please close the CDN and install it after nginx to avoid port80 occupancy and failure to apply fora certificate)"
     green " ================================================== "
 
     read configSSLDomain
 
-    read -p "是否申请证书? 默认为自动申请证书,如果二次安装或已有证书可以选否 请输入[Y/n]?" isDomainSSLRequestInput
+    read -p "Do you want to apply fora certificate? The default is to apply fora certificate automatically. If you have a second installation or an existing certificate, you can choose No. Please enter[Y/n]?" isDomainSSLRequestInput
     isDomainSSLRequestInput=${isDomainSSLRequestInput:-Y}
 
     isInstallNginx="false"
@@ -3547,26 +3547,26 @@ function getHTTPSNoNgix(){
 
             if test -s ${configSSLCertPath}/fullchain.cer; then
                 green " =================================================="
-                green "   域名SSL证书申请成功 !"
-                green " ${configSSLDomain} 域名证书内容文件路径 ${configSSLCertPath}/fullchain.cer "
-                green " ${configSSLDomain} 域名证书私钥文件路径 ${configSSLCertPath}/private.key "
+                green "   Domain name SSL certificate application is successful !"
+                green " ${configSSLDomain} Domain name certificate content file path ${configSSLCertPath}/fullchain.cer "
+                green " ${configSSLDomain} Domain name certificate private key file path ${configSSLCertPath}/private.key "
                 green " =================================================="
 
             else
                 red "==================================="
-                red " https证书没有申请成功，安装失败!"
-                red " 请检查域名和DNS是否生效, 同一域名请不要一天内多次申请!"
-                red " 请检查80和443端口是否开启, VPS服务商可能需要添加额外防火墙规则，例如阿里云、谷歌云等!"
-                red " 重启VPS, 重新执行脚本, 可重新选择修复证书选项再次申请证书 ! "
+                red " The https certificate was not successfully applied, and the installation failed!"
+                red " Please check whether the domain name and DNS are valid, please donot apply forthe same domain name multiple times inone day!"
+                red " Please check whether ports80 and443 are open, VPS service providers may need to add additional firewall rules, such as Alibaba Cloud, Google Cloud, etc.!"
+                red " Restart the VPS, re-execute the script, and re-select the repair certificate option to apply forthe certificate again! "
                 red "==================================="
                 exit
             fi
 
         else
             green " =================================================="
-            green "   不申请域名的证书, 请把证书放到如下目录, 或自行修改trojan或v2ray配置!"
-            green " ${configSSLDomain} 域名证书内容文件路径 ${configSSLCertPath}/fullchain.cer "
-            green " ${configSSLDomain} 域名证书私钥文件路径 ${configSSLCertPath}/private.key "
+            green "   Do not apply fora domain name certificate, please put the certificate inthe following directory, or modify the trojan or v2ray configuration yourself!"
+            green " ${configSSLDomain} Domain name certificate content file path ${configSSLCertPath}/fullchain.cer "
+            green " ${configSSLDomain} Domain name certificate private key file path ${configSSLCertPath}/private.key "
             green " =================================================="
         fi
     else
@@ -3599,60 +3599,60 @@ function getHTTPSNoNgix(){
 function startMenuOther(){
     clear
     green " =================================================="
-    green " 1. 安装 trojan-web (trojan 和 trojan-go 可视化管理面板) 和 nginx 伪装网站"
-    green " 2. 升级 trojan-web 到最新版本"
-    green " 3. 重新申请证书"
-    green " 4. 查看日志, 管理用户, 查看配置等功能"
-    red " 5. 卸载 trojan-web 和 nginx "
+    green " 1. Install trojan-web (trojan and trojan-go visual management panel) and nginx camouflage website"
+    green " 2. Upgrade trojan-web to the latest version"
+    green " 3. Re-apply for a certificate"
+    green " 4. View logs, manage users, view configurations and other functions"
+    red " 5. Uninstall trojan-web and nginx "
     echo
-    green " 6. 安装 v2ray 可视化管理面板V2ray UI 可以同时支持trojan"
-    green " 7. 升级 v2ray UI 到最新版本"
-    red " 8. 卸载 v2ray UI"
+    green " 6. Install v2ray visual management panel V2ray UI can support trojan at the same time"
+    green " 7. Upgrade v2ray UI to the latest version"
+    red " 8. Uninstall v2ray UI"
     echo
-    red " 安装上述2款可视化管理面板 之前不能用本脚本安装过trojan或v2ray 安装过请先用本脚本卸载!"
-    red " 安装上述2款可视化管理面板 之前不能用其他脚本安装过trojan或v2ray 安装过请先用其他脚本卸载!"
-    red " 上述2款可视化管理面板 无法同时安装!"
+    red " Install the above 2 visual management panels. Trojan or v2ray cannot be installed with this script before. Please uninstall with this script first!"
+    red " Install the above 2 visual management panels. You cannot install trojan or v2ray with other scripts before. Please uninstall with other scripts first!"
+    red " The above two visual management panels cannot be installed at the same time!"
 
     green " =================================================="
 
-    green " 11. 单独申请域名SSL证书"
-    green " 12. 只安装trojan 运行在443端口, 不安装nginx, 请确保443端口没有被nginx占用"
-    green " 13. 只安装trojan-go 运行在443端口, 不支持CDN, 不开启websocket, 不安装nginx. 请确保80端口有监听,否则trojan-go无法启动"
-    green " 14. 只安装trojan-go 运行在443端口, 支持CDN, 开启websocket, 不安装nginx. 请确保80端口有监听,否则trojan-go无法启动"    
-    green " 15. 只安装V2Ray或Xray (VLess或VMess协议) 开启websocket, 支持CDN, (VLess/VMess+WS) 不安装nginx,无TLS加密,方便与现有网站或宝塔面板集成"
-    green " 16. 只安装V2Ray VLess运行在443端口 (VLess-TCP-TLS) + (VLess-WS-TLS) 支持CDN, 不安装nginx"
-    green " 17. 只安装V2Ray VLess运行在443端口 (VLess-TCP-TLS) + (VMess-TCP-TLS) + (VMess-WS-TLS) 支持CDN, 不安装nginx"
-    green " 20. 只安装Xray VLess运行在443端口 (VLess-TCP-XTLS direct) + (VLess-WS-TLS), 不安装nginx" 
-    green " 21. 只安装Xray VLess运行在443端口 (VLess-TCP-XTLS direct) + (VLess-WS-TLS) + trojan 支持VLess的CDN, 不安装nginx"    
-    green " 22. 只安装Xray VLess运行在443端口 (VLess-TCP-XTLS direct) + (VLess-WS-TLS) + trojan-go 支持VLess的CDN, 不安装nginx"   
-    green " 23. 只安装Xray VLess运行在443端口 (VLess-TCP-XTLS direct) + (VLess-WS-TLS) + trojan-go 支持VLess的CDN和trojan-go的CDN, 不安装nginx"   
-    green " 24. 只安装Xray VLess运行在443端口 (VLess-TCP-XTLS direct) + (VLess-WS-TLS) + xray自带的trojan 支持VLess的CDN, 不安装nginx"    
+    green " 11. Apply fora domain SSL certificate separately"
+    green " 12. Only install trojan and run on port443, donot install nginx, please make sure that port443 is not occupied by nginx"
+    green " 13. Only install trojan-go and run on port443, donot support CDN, donot open websocket, donot install nginx. Please ensure that port80 is listening, otherwise trojan-go will not start"
+    green " 14. Only install trojan-go and run on port443, support CDN, enable websocket, and donot install nginx. Please ensure that port80 is listening, otherwise trojan-go cannot be started"    
+    green " 15. Only install V2Ray or Xray (VLess or VMess protocol) open websocket, support CDN, (VLess/VMess+WS) donot install nginx, no TLS encryption, easy to integrate with existing websites or pagoda panels"
+    green " 16. Only install V2Ray VLess runs on port443 (VLess-TCP-TLS) + (VLess-WS-TLS) Support CDN, donot install nginx"
+    green " 17. Only install V2Ray VLess runs on port443 (VLess-TCP-TLS) + (VMess-TCP-TLS) + (VMess-WS-TLS) Support CDN, donot install nginx"
+    green " 20. Only install Xray VLess running on port443 (VLess-TCP-XTLS direct) + (VLess-WS-TLS), don’t install nginx" 
+    green " 21. Only install Xray VLess running on port443 (VLess-TCP-XTLS direct) + (VLess-WS-TLS) + trojan supports CDN of VLess, don’t install nginx"    
+    green " 22. Only install Xray VLess and run on port443 (VLess-TCP-XTLS direct) + (VLess-WS-TLS) + trojan-go Support CDN of VLess, don't install nginx"   
+    green " 23. Only install Xray VLess and run on port443 (VLess-TCP-XTLS direct) + (VLess-WS-TLS) + trojan-go Support VLess CDN and trojan-go CDN, do not install nginx"   
+    green " 24. Only install Xray VLess running on port 443 (VLess-TCP-XTLS direct) + (VLess-WS-TLS) + xray's own trojan supports CDN of VLess, don’t install nginx"    
 
-    red " 27. 卸载 trojan"    
-    red " 28. 卸载 trojan-go"   
-    red " 29. 卸载 v2ray或Xray"   
+    red " 27. Uninstall trojan"    
+    red " 28. Uninstall trojan-go"   
+    red " 29. Uninstall v2ray或Xray"   
 
     green " =================================================="
     echo
-    green " 以下是 VPS 测网速工具"
-    red " 脚本测速会大量消耗 VPS 流量，请悉知！"
-    green " 31. 测试VPS 是否支持Netflix, 检测IP解锁范围及对应所在的地区"
+    green " The following is the VPS network speed measurement tool"
+    red " Script speed measurement will consume a lot of VPS traffic, please be aware!"
+    green " 31. Test whether the VPS supports Netflix, check the IP unlock range and the corresponding region"
     echo
-    green " 32. superspeed 三网纯测速 （全国各地三大运营商部分节点全面测速）"
-    green " 33. 由teddysun 编写的Bench 综合测试 （包含系统信息 IO 测试 多处数据中心的节点测试 ）"
-	green " 34. testrace 回程路由测试 （四网路由测试）"
-	green " 35. LemonBench 快速全方位测试 （包含CPU内存性能、回程、速度）"
-    green " 36. ZBench 综合网速测试 （包含节点测速, Ping 以及 路由测试）"
+    green " 32. superspeed three-network pure speed measurement (full speed measurement of some nodes of the three major operators across the country)"
+    green " 33. Bench comprehensive test written by teddysun (including system information IO test node test in multiple data centers)"
+	green " 34. testrace backhaul routing test (four network routing test)"
+	green " 35. LemonBench fast all-round test (including CPU memory performance, backhaul, speed)"
+    green " 36. ZBench comprehensive network speed test (including node speed test, Ping and routing test)"
 
     echo
-    green " 41. 安装新版本 BBR-PLUS 加速6合一脚本" 
-    green " 42. 安装 WireGuard, 用于解锁 google 验证码 和 Netflix 限制" 
-    green " 43. 卸载 WireGuard" 
+    green " 41. Install the new version of BBR-PLUS to accelerate the 6-in-1 script" 
+    green " 42. Install WireGuard to unlock google verification codes and Netflix restrictions" 
+    green " 43. Uninstall WireGuard" 
     echo
-    green " 9. 返回上级菜单"
-    green " 0. 退出脚本"
+    green " 9. Return to the previous menu"
+    green " 0. Exit script"
     echo
-    read -p "请输入数字:" menuNumberInput
+    read -p "Please enter the number:" menuNumberInput
     case "$menuNumberInput" in
         1 )
             setLinuxDateZone
@@ -3777,7 +3777,7 @@ function startMenuOther(){
         ;;
         * )
             clear
-            red "请输入正确数字 !"
+            red "Please enter the correct number !"
             sleep 2s
             startMenuOther
         ;;
@@ -3799,48 +3799,48 @@ function start_menu(){
     fi
 
     green " =================================================="
-    green " Trojan Trojan-go V2ray 一键安装脚本 2021-03-12 更新.  系统支持：centos7+ / debian9+ / ubuntu16.04+"
-    red " *请不要在任何生产环境使用此脚本 请不要有其他程序占用80和443端口"
+    green " Trojan Trojan-go V2ray One-click installation script 2021-03-12 update. System support：centos7+ / debian9+ / ubuntu16.04+"
+    red " *Please donot use this script inany production environment Please donot have other programs occupy80 and 443ports"
     green " =================================================="
-    green " 1. 安装 BBR-PLUS 加速4合一脚本"
+    green " 1. Install BBR-PLUS to accelerate 4-in-1 script"
     echo
-    green " 2. 安装 trojan 和 nginx 不支持CDN"
-    green " 3. 修复证书 并继续安装 trojan"
-    green " 4. 升级 trojan 到最新版本"
-    red " 5. 卸载 trojan 与 nginx"
+    green " 2. Installing trojan and nginx does not support CDN"
+    green " 3. Repair the certificate and continue to install trojan"
+    green " 4. Upgrade trojan to the latest version"
+    red " 5. Uninstall trojan and nginx"
     echo
-    green " 6. 安装 trojan-go 和 nginx 不支持CDN, 不开启websocket (兼容trojan客户端)"
-    green " 7. 修复证书 并继续安装 trojan-go 不支持CDN, 不开启websocket"
-    green " 8. 安装 trojan-go 和 nginx 支持CDN 开启websocket (兼容trojan客户端但不兼容websocket)"
-    green " 9. 修复证书 并继续安装 trojan-go 支持CDN, 开启websocket"
-    green " 10. 升级 trojan-go 到最新版本"
-    red " 11. 卸载 trojan-go 与 nginx"
+    green " 6. Install trojan-go and nginx does not support CDN, donot open websocket (compatible with trojan client)"
+    green " 7. Repair the certificate and continue to install trojan-go does not support CDN, donot open websocket"
+    green " 8. Install trojan-go and nginx to support CDN and open websocket (compatible with trojan client but not compatible with websocket)"
+    green " 9. Repair the certificate and continue to install trojan-go to support CDN, open websocket"
+    green " 10. Upgrade trojan-go to the latest version"
+    red " 11. Uninstall trojan-go and nginx"
     echo
-    green " 12. 安装 v2ray或xray 和 nginx, 支持 websocket tls1.3, 支持CDN"
-    green " 13. 升级 v2ray或xray 到最新版本"
-    red " 14. 卸载v2ray或xray 和 nginx"
+    green " 12. Install v2ray or xray and nginx, support websocket tls1.3, support CDN"
+    green " 13. Upgrade v2ray or xray to the latest version"
+    red " 14. Uninstall v2ray or xray and nginx"
     echo
-    green " 15. 同时安装 trojan + v2ray或xray 和 nginx, 不支持CDN"
-    green " 16. 升级 v2ray或xray 和 trojan 到最新版本"
-    red " 17. 卸载 trojan, v2ray或xray 和 nginx"
-    green " 18. 同时安装 trojan-go + v2ray或xray 和 nginx, 不支持CDN"
-    green " 19. 同时安装 trojan-go + v2ray或xray 和 nginx, trojan-go 和 v2ray 都支持CDN"
-    green " 20. 升级 v2ray或xray 和 trojan-go 到最新版本"
-    red " 21. 卸载 trojan-go, v2ray或xray 和 nginx"
+    green " 15. Install trojan + v2ray or xray and nginx at the same time, CDN is not supported"
+    green " 16. Upgrade v2ray or xray and trojan to the latest version"
+    red " 17. Uninstall trojan, v2ray or xray and nginx"
+    green " 18. Install trojan-go + v2ray or xray and nginx at the same time, CDN is not supported"
+    green " 19. Install trojan-go + v2ray or xray and nginx at the same time, both trojan-go and v2ray support CDN"
+    green " 20. Upgrade v2ray or xray and trojan-go to the latest version"
+    red " 21. Uninstall trojan-go, v2ray or xray and nginx"
     echo
-    green " 28. 查看已安装的配置和用户密码等信息"
-    green " 29. 子菜单 安装 trojan 和 v2ray 可视化管理面板"
-    green " 30. 不安装nginx,只安装trojan或v2ray或xray,可选安装SSL证书, 方便与现有网站或宝塔面板集成"
+    green " 28. View information such as installed configuration and user password"
+    green " 29. Submenu install trojan and v2ray visual management panel"
+    green " 30. Do not install nginx, only install trojan or v2ray or xray, and optionally install an SSL certificate to facilitate integration with existing websites or pagoda panels"
     green " =================================================="
-    green " 31. 安装OhMyZsh与插件zsh-autosuggestions, Micro编辑器 等软件"
-    green " 32. 开启root用户SSH登陆, 如谷歌云默认关闭root登录,可以通过此项开启"
-    green " 33. 修改SSH 登陆端口号"
-    green " 34. 设置时区为北京时间"
-    green " 35. 用 VI 编辑 authorized_keys 文件, 方便填入公钥, 免密码登录, 增加安全性"
-    green " 41. 子菜单 测网速工具, Netflix 测试工具, 解锁Netflix和去除google验证码工具"
-    green " 0. 退出脚本"
+    green " 31. Install OhMyZsh and plug-in zsh-autosuggestions, Micro editor and other software"
+    green " 32. Enable root user SSH login, for example, Google Cloud turns off root login by default, you can enable it through this option"
+    green " 33. Modify the SSH login port number"
+    green " 34. Set the time zone to Beijing time"
+    green " 35. Use VI to edit the authorized_keys file, which is convenient to fill in the public key, log in without password, and increase security"
+    green " 41. Submenu Internet Speed Test Tool, Netflix Test Tool, Unblock Netflix and Remove Google Verification Code Tool"
+    green " 0. Exit script"
     echo
-    read -p "请输入数字:" menuNumberInput
+    read -p "Please enter the number:" menuNumberInput
     case "$menuNumberInput" in
         1 )
             installBBR
@@ -3987,7 +3987,7 @@ function start_menu(){
         ;;
         * )
             clear
-            red "请输入正确数字 !"
+            red "Please enter the correct number !"
             sleep 2s
             start_menu
         ;;
