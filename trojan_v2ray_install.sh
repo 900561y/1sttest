@@ -35,18 +35,44 @@ bold(){
 }
 
 
-
+osCPU="intel"
+osArchitecture="arm"			
 osInfo=""
 osRelease=""
 osReleaseVersion=""
 osReleaseVersionNo=""
-osReleaseVersionCodeName=""
+osReleaseVersionCodeName="CodeName"
 osSystemPackage=""
 osSystemMdPath=""
 osSystemShell="bash"
 
+function checkArchitecture(){
+	# https://stackoverflow.com/questions/48678152/how-to-detect-386-amd64-arm-or-arm64-os-architecture-via-shell-bash
+
+	case $(uname -m) in
+		i386)   osArchitecture="386" ;;
+		i686)   osArchitecture="386" ;;
+		x86_64) osArchitecture="amd64" ;;
+		arm)    dpkg --print-architecture | grep -q "arm64" && osArchitecture="arm64" || osArchitecture="arm" ;;
+		* )     osArchitecture="arm" ;;
+	esac
+}
+
+function checkCPU(){
+	osCPUText=$(cat /proc/cpuinfo | grep vendor_id | uniq)
+	if [[ $osCPUText =~ "GenuineIntel" ]]; then
+		osCPU="intel"
+    else
+        osCPU="amd"
+    fi
+
+	# green " Status 状态显示--当前CPU是: $osCPU"
+}
+
+# 检测系统发行版代号
 
 # Detection system release
+
 function getLinuxOSRelease(){
     if [[ -f /etc/redhat-release ]]; then
         osRelease="centos"
@@ -86,10 +112,13 @@ function getLinuxOSRelease(){
     fi
 
     getLinuxOSVersion
+	checkArchitecture
+	checkCPU				 
+
 
     [[ -z $(echo $SHELL|grep zsh) ]] && osSystemShell="bash" || osSystemShell="zsh"
 
-    echo "OS info: ${osInfo}, ${osRelease}, ${osReleaseVersion}, ${osReleaseVersionNo}, ${osReleaseVersionCodeName}, ${osSystemShell}, ${osSystemPackage}, ${osSystemMdPath}"
+    green "OS info: ${osInfo}, ${osRelease}, ${osReleaseVersion}, ${osReleaseVersionNo}, ${osReleaseVersionCodeName}, ${osCPU} CPU ${osArchitecture}, ${osSystemShell}, ${osSystemPackage}, ${osSystemMdPath}"
 }
 
 # Detection system version number
@@ -104,7 +133,7 @@ getLinuxOSVersion(){
 
     if [ -f /etc/os-release ]; then
         # freedesktop.org and systemd
-        . /etc/os-release
+        source /etc/os-release
         osInfo=$NAME
         osReleaseVersionNo=$VERSION_ID
 
@@ -196,37 +225,26 @@ function testLinuxPortUsage(){
     fi
 
     if [ "$osRelease" == "centos" ]; then
-        if  [ -n "$(grep ' 6\.' /etc/redhat-release)" ] ; then
-            red "==============="
-            red "The current system is not supported"
-            red "==============="
+        if  [[ ${osReleaseVersionNo} == "6" || ${osReleaseVersionNo} == "5" ]]; then
+            green " =================================================="
+            red " This script does not support Centos 6 or Centos 6 earlier version"
+            green " =================================================="
             exit
         fi
 
-        if  [ -n "$(grep ' 5\.' /etc/redhat-release)" ] ; then
-            red "==============="
-            red "The current system is not supported"
-            red "==============="
-            exit
-        fi
-
+		red " Turn off firewalld"			
         ${sudoCmd} systemctl stop firewalld
         ${sudoCmd} systemctl disable firewalld
 
     elif [ "$osRelease" == "ubuntu" ]; then
-        if  [ -n "$(grep ' 14\.' /etc/os-release)" ] ;then
-            red "==============="
-            red "The current system is not supported"
-            red "==============="
-            exit
-        fi
-        if  [ -n "$(grep ' 12\.' /etc/os-release)" ] ;then
-            red "==============="
-            red "The current system is not supported"
-            red "==============="
+        if  [[ ${osReleaseVersionNo} == "14" || ${osReleaseVersionNo} == "12" ]]; then
+            green " =================================================="
+            red " This script doesnt support Ubuntu 14 or Ubuntu 14 earlier version"
+            green " =================================================="
             exit
         fi
 
+		red " Turn off firewall ufw"		 
         ${sudoCmd} systemctl stop ufw
         ${sudoCmd} systemctl disable ufw
         
@@ -346,7 +364,7 @@ function setLinuxDateZone(){
     else 
         green " =================================================="
         yellow "The current time zone is: $tempCurrentDateZone | $(date -R) "
-        yellow "Whether to set the time zone to Beijing time +0800区, So that the cron timing restart script runs according to Beijing time."
+        yellow "Whether to set the time zone to Beijing time +0800, So that the cron timing restart script runs according to Beijing time."
         green " =================================================="
         # read 默认值 https://stackoverflow.com/questions/2642585/read-a-variable-in-bash-with-a-default-value
 
@@ -370,20 +388,29 @@ function setLinuxDateZone(){
 
 # Software Installation
 
-
-
-function installBBR(){
-    wget -O tcp_old.sh -N --no-check-certificate "https://raw.githubusercontent.com/chiakge/Linux-NetSpeed/master/tcp.sh" && chmod +x tcp_old.sh && ./tcp_old.sh
+function upgradeScript(){
+    wget -Nq --no-check-certificate -O ./trojan_v2ray_install.sh "https://raw.githubusercontent.com/jinwyp/one_click_script/master/trojan_v2ray_install.sh"
+    green " script upgraded! "
+    chmod +x ./trojan_v2ray_install.sh
+    sleep 2s
+    ./trojan_v2ray_install.sh
 }
 
-function installBBR2(){
-    
-    if [[ -f ./tcp.sh ]];  then
-        mv ./tcp.sh ./tcp_old.sh
-    fi    
-    wget -N --no-check-certificate "https://raw.githubusercontent.com/ylx2016/Linux-NetSpeed/master/tcp.sh" && chmod +x tcp.sh && ./tcp.sh
-}
+function installSoftDownload(){
+	if [[ "${osRelease}" == "debian" || "${osRelease}" == "ubuntu" ]]; then
+		if ! dpkg -l | grep -qw wget; then
+			${osSystemPackage} -y install wget curl git
+			
+			# https://stackoverflow.com/questions/11116704/check-if-vt-x-is-activated-without-having-to-reboot-in-linux
+			${osSystemPackage} -y install cpu-checker
+		fi
 
+	elif [[ "${osRelease}" == "centos" ]]; then
+		if ! rpm -qa | grep -qw wget; then
+			${osSystemPackage} -y install wget curl git
+		fi
+	fi 
+}
 
 function installPackage(){
     if [ "$osRelease" == "centos" ]; then
@@ -405,9 +432,16 @@ EOF
 
         $osSystemPackage install -y curl wget git unzip zip tar
         $osSystemPackage install -y xz jq redhat-lsb-core 
-        $osSystemPackage install -y iputils-ping
+        ${osSystemPackage} install -y iputils
+        ${osSystemPackage} install -y iperf3
 
-    elif [ "$osRelease" == "ubuntu" ]; then
+        # https://www.cyberciti.biz/faq/how-to-install-and-use-nginx-on-centos-8/
+        if  [[ ${osReleaseVersionNo} == "8" ]]; then
+            ${sudoCmd} yum module -y reset nginx
+            ${sudoCmd} yum module -y enable nginx:1.18
+            ${sudoCmd} yum module list nginx
+        fi																 
+	elif [ "$osRelease" == "ubuntu" ]; then
         
         # https://joshtronic.com/2018/12/17/how-to-install-the-latest-nginx-on-debian-and-ubuntu/
         # https://www.nginx.com/resources/wiki/start/topics/tutorials/install/
@@ -425,7 +459,7 @@ EOF
         $osSystemPackage install -y curl wget git unzip zip tar
         $osSystemPackage install -y xz-utils jq lsb-core lsb-release
         $osSystemPackage install -y iputils-ping
-
+		${osSystemPackage} install -y iperf3
 
     elif [ "$osRelease" == "debian" ]; then
         # ${sudoCmd} add-apt-repository ppa:nginx/stable -y
@@ -443,6 +477,7 @@ EOF
         $osSystemPackage install -y curl wget git unzip zip tar
         $osSystemPackage install -y xz-utils jq lsb-core lsb-release
         $osSystemPackage install -y iputils-ping
+		${osSystemPackage} install -y iperf3						
     fi
 }
 
@@ -457,7 +492,7 @@ function installSoftEditor(){
         cp ${HOME}/bin/micro /usr/local/bin
 
         green " =================================================="
-        yellow " The micro editor is installed successfully!"
+        green " The micro editor is installed successfully!"
         green " =================================================="
     fi
 
@@ -507,11 +542,14 @@ function installSoftOhMyZsh(){
     fi
 
     green " =================================================="
-    yellow " ZSH installation is successful, ready to install oh-my-zsh"
+    green " ZSH installation is successful, ready to install oh-my-zsh"
     green " =================================================="
 
     # installation oh-my-zsh
     if [[ ! -d "${HOME}/.oh-my-zsh" ]] ;  then
+		green " =================================================="
+        yellow " Ready to install oh-my-zsh"
+        green " =================================================="
         curl -Lo ${HOME}/ohmyzsh_install.sh https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh
         chmod +x ${HOME}/ohmyzsh_install.sh
         sh ${HOME}/ohmyzsh_install.sh --unattended
@@ -561,7 +599,7 @@ function vps_netflix(){
     # bash <(curl -sSL "https://github.com/CoiaPrant/Netflix_Unlock_Information/raw/main/netflix.sh")
 	# wget -N --no-check-certificate https://github.com/CoiaPrant/Netflix_Unlock_Information/raw/main/netflix.sh && chmod +x netflix.sh && ./netflix.sh
 
-	wget -O netflix.sh -N --no-check-certificate https://github.com/CoiaPrant/MediaUnlock_Test/raw/main/check.sh && chmod +x netflix.sh && ./netflix.sh
+	wget -N --no-check-certificate -O ./netflix.sh https://github.com/CoiaPrant/MediaUnlock_Test/raw/main/check.sh && chmod +x ./netflix.sh && ./netflix.sh
 
     # wget -N -O nf https://github.com/sjlleo/netflix-verify/releases/download/2.01/nf_2.01_linux_amd64 && chmod +x nf && clear && ./nf
 }
@@ -588,179 +626,26 @@ function vps_LemonBench(){
     wget -O LemonBench.sh -N --no-check-certificate https://ilemonra.in/LemonBenchIntl && chmod +x LemonBench.sh && ./LemonBench.sh fast
 }
 
+function installBBR(){
+    wget -O tcp_old.sh -N --no-check-certificate "https://raw.githubusercontent.com/chiakge/Linux-NetSpeed/master/tcp.sh" && chmod +x tcp_old.sh && ./tcp_old.sh					   
+}
 
-
-
-
-versionWgcf="2.2.2"
-downloadFilenameWgcf="wgcf_${versionWgcf}_linux_amd64"
-configWgcfBinPath="/usr/local/bin"
-configWgcfConfigFilePath="${HOME}/wireguard"
-configWgcfAccountFilePath="$configWgcfConfigFilePath/wgcf-account.toml"
-configWgcfProfileFilePath="$configWgcfConfigFilePath/wgcf-profile.conf"
-
+function installBBR2(){
+	if [[ -f ./tcp.sh ]];  then
+        mv ./tcp.sh ./tcp_old.sh
+    fi    
+    wget -N --no-check-certificate "https://raw.githubusercontent.com/ylx2016/Linux-NetSpeed/master/tcp.sh" && chmod +x tcp.sh && ./tcp.sh
+}
 function installWireguard(){
-
-    getTrojanAndV2rayVersion "wgcf"
-    green " =================================================="
-    green "    start installation Wireguard with Cloudflare Warp command line tool Wgcf ${versionWgcf} !"
-    red "    Need to install first BBR script install original version BBR, can't install bbr plus"
-    red "    Centos 7 recommended 4.11 kernel, Use the first BBR script of this script to install the original BBR"
-    red "    Debian or Ubuntu Can also be used The new BBR installation script in this script installs the original BBR, Kernel is above 5.4"
-    red "    Installing the kernel is risky, causing the VPS to fail to start, please use it with caution"
-    green " =================================================="
-
-    green "The current Linux kernel devel kernel version is: $(ls /usr/src/kernels)"
-    green "The current Linux kernel version is: $(uname -r)"
-    echo ""
-    green "To install Wireguard, you need to ensure that the versions of kernel, kernel-devel, and kernel-headers are consistent"
-
-	read -p "Do you want to continue? Please confirm that the linux kernel has been installed correctly and press Enter to continue the operation by default, please enter[Y/n]?" isContinueInput
-	isContinueInput=${isContinueInput:-Y}
-
-	if [[ $isContinueInput == [Yy] ]]; then
-		echo ""
-	else 
-        green " Please use the first item of this script to install the BBR script to install the original version of BBR, and change the linux kernel to 4.11!"
-		exit
-	fi
-
-    mkdir -p ${configWgcfConfigFilePath}
-    mkdir -p ${configWgcfBinPath}
-    cd ${configWgcfConfigFilePath}
-
-    # https://github.com/ViRb3/wgcf/releases/download/v2.2.2/wgcf_2.2.2_linux_amd64
-    wget -O ${configWgcfPath}/wgcf --no-check-certificate "https://github.com/ViRb3/wgcf/releases/download/v${versionWgcf}/${downloadFilenameWgcf}"
-    ${sudoCmd} chmod +x ${configWgcfPath}/wgcf
-
-    if [[ -f ${configWgcfPath}/wgcf ]]; then
-
-        green " Cloudflare Warp 命令行工具 Wgcf ${versionWgcf} 下载成功!"
-
-        # ${configWgcfPath}/wgcf register --config "${configWgcfAccountFilePath}"
-        # ${configWgcfPath}/wgcf generate --config "${configWgcfProfileFilePath}"
-
-        ${configWgcfPath}/wgcf register 
-        ${configWgcfPath}/wgcf generate 
-
-        sed -i '/AllowedIPs = 0\.0\.0\.0/d' ${configWgcfProfileFilePath}
-        sed -i 's/engage\.cloudflareclient\.com/162\.159\.192\.1/g'  ${configWgcfProfileFilePath}
-
-    else
-        ren "  Wgcf ${versionWgcf} 下载失败!"
-        exit
-    fi
-
-    green "  Start installing Wireguard!"
-    bash <(curl -sSL https://raw.githubusercontent.com/jinwyp/one_click_script/master/wireguard.sh)
-    # wget -O wireguard.sh -N --no-check-certificate "https://raw.githubusercontent.com/teddysun/across/master/wireguard.sh" && chmod 755 wireguard.sh && ./wireguard.sh -r
-
-
-    echo "nameserver 8.8.8.8" >>  /etc/resolv.conf
-    echo "nameserver 8.8.4.4" >>  /etc/resolv.conf
-    echo "nameserver 1.1.1.1" >>  /etc/resolv.conf
-    echo "nameserver 9.9.9.9" >>  /etc/resolv.conf
-    echo "nameserver 9.9.9.10" >>  /etc/resolv.conf
-    echo "nameserver 8.8.8.8" >>  /etc/resolv.conf
-
-
-    cp ${configWgcfProfileFilePath} /etc/wireguard/wgcf.conf 
-
-    echo 
-    green " =================================================="
-    
-    ${sudoCmd} wg-quick up wgcf
-
-    echo 
-    green "  Verify whether Wireguard starts normally. Check whether CLOUDFLARE's ipv6 access is used!"
-    isWireguardIpv6Working=$(curl -6 ip.p3terx.com | grep CLOUDFLARENET )
-    echo
-    echo "curl -6 ip.p3terx.com"
-    curl -6 ip.p3terx.com 
-    echo
-    ${sudoCmd} wg-quick down wgcf
-
-
-	if [[ -n "$isWireguardIpv6Working" ]]; then	
-		green " Wireguard starts normally! "
-        echo
-	else 
-		green " ================================================== "
-		red " Wireguard uses curl -6 ip.p3terx.com to detect IPV6 access failure using CLOUDFLARENET"
-        red " Please check if the linux kernel is installed correctly, uninstall and reinstall"
-        red " The installation will continue to run, or the installation may be successful, but IPV6 is not used"
-		green " ================================================== "
-		
-	fi
-
-
-    ${sudoCmd} systemctl daemon-reload
-
-    # Enable daemon
-    ${sudoCmd} systemctl start wg-quick@wgcf
-
-    # Set boot up
-    ${sudoCmd} systemctl enable wg-quick@wgcf
-
-
-    green " ================================================== "
-    green "  Wireguard with Cloudflare Warp Command line tool Wgcf ${versionWgcf} Successful installation !"
-    green "  Wireguard Stop: systemctl stop wg-quick@wgcf  Start: systemctl start wg-quick@wgcf  Restart: systemctl restart wg-quick@wgcf"
-    green "  Wireguard view log: journalctl -n 50 -u wg-quick@wgcf Check running status: systemctl status wg-quick@wgcf"
-    
-    green "  Use this script to install v2ray or xray, you can choose whether to lift the google verification code and Netflix restrictions!"
-    green "  For v2ray or xray installed by other scripts, please replace the v2ray or xray configuration file yourself!"
-    green " ================================================== "
-    
+    bash <(wget -qO- https://github.com/jinwyp/one_click_script/raw/master/install_kernel.sh)
+    # wget -N --no-check-certificate https://github.com/jinwyp/one_click_script/raw/master/install_kernel.sh && chmod +x ./install_kernel.sh && ./install_kernel.sh
 }
-
-
-function removeWireguard(){
-    green " ================================================== "
-    red " Prepare to uninstall the installed Wireguard and Cloudflare Warp command line tool Wgcf "
-    green " ================================================== "
-
-    if [ -f "${configWgcfBinPath}/wgcf" ]; then
-        ${sudoCmd} systemctl stop wg-quick@wgcf.service
-        ${sudoCmd} systemctl disable wg-quick@wgcf.service
-    else 
-        red " The system does not have Wireguard and Wgcf installed, exit to uninstall"
-        exit
-    fi
-
-    $osSystemPackage -y remove wireguard-dkms
-    $osSystemPackage -y remove wireguard-tools
-
-    rm -rf ${configWgcfConfigFilePath}
-
-    rm -f ${osSystemMdPath}wg-quick@wgcf.service
-
-    rm -f /usr/bin/wg
-    rm -f /usr/bin/wg-quick
-    rm -f /usr/share/man/man8/wg.8
-    rm -f /usr/share/man/man8/wg-quick.8
-
-    [ -d "/etc/wireguard" ] && ("rm -rf /etc/wireguard")
-
-    modprobe -r wireguard
-
-    green " ================================================== "
-    green "  Wireguard and Cloudflare Warp command line tool Wgcf are uninstalled!"
-    green " ================================================== "
-
-  
-}
-
-
-
-
-
-
 
 configNetworkRealIp=""
 configNetworkLocalIp=""
 configSSLDomain=""
 
+configSSLAcmeScriptPath="${HOME}/.acme.sh" 
 configSSLCertPath="${HOME}/website/cert"
 configWebsitePath="${HOME}/website/html"
 configTrojanWindowsCliPrefixPath=$(cat /dev/urandom | head -1 | md5sum | head -c 20)
@@ -826,7 +711,7 @@ configV2rayAccessLogFilePath="${HOME}/v2ray-access.log"
 configV2rayErrorLogFilePath="${HOME}/v2ray-error.log"
 configV2rayProtocol="vmess"
 configV2rayVlessMode=""
-configReadme=${HOME}/trojan_v2ray_readme.txt
+configReadme=${HOME}/readme_trojan_v2ray.txt
 
 
 function downloadAndUnzip(){
@@ -953,7 +838,7 @@ function compareRealIpWithLocalIp(){
             configNetworkLocalIp=`curl v4.ident.me`
 
             green " ================================================== "
-            green "     The domain name resolution address is ${configNetworkRealIp}, 本VPS的IP为 ${configNetworkLocalIp}. "
+            green "     The domain name resolution address is ${configNetworkRealIp}, The IP of this VPS is  ${configNetworkLocalIp}. "
             green " ================================================== "
 
             if [[ ${configNetworkRealIp} == ${configNetworkLocalIp} ]] ; then
@@ -1009,6 +894,8 @@ function getHTTPSCertificate(){
         --fullchain-file ${configSSLCertPath}/fullchain.cer \
         --reloadcmd  "systemctl force-reload  nginx.service"
     fi
+
+    green "=========================================="
 }
 
 
@@ -1049,11 +936,12 @@ http {
                       '"\$http_referer" "\$http_user_agent" "\$http_x_forwarded_for"';
     access_log  $nginxAccessLogFilePath  main;
     error_log $nginxErrorLogFilePath;
+											 
     sendfile        on;
     #tcp_nopush     on;
     keepalive_timeout  120;
     client_max_body_size 20m;
-    #gzip  on;
+    gzip  on;
 
     server {
         listen       80;
@@ -1093,11 +981,12 @@ http {
                       '"\$http_referer" "\$http_user_agent" "\$http_x_forwarded_for"';
     access_log  $nginxAccessLogFilePath  main;
     error_log $nginxErrorLogFilePath;
+   
     sendfile        on;
     #tcp_nopush     on;
     keepalive_timeout  120;
     client_max_body_size 20m;
-    #gzip  on;
+    gzip  on;
 
     server {
         listen       80;
@@ -1151,11 +1040,12 @@ http {
                       '"\$http_referer" "\$http_user_agent" "\$http_x_forwarded_for"';
     access_log  $nginxAccessLogFilePath  main;
     error_log $nginxErrorLogFilePath;
+	 
     sendfile        on;
     #tcp_nopush     on;
     keepalive_timeout  120;
     client_max_body_size 20m;
-    #gzip  on;
+    gzip  on;
 
     server {
         listen 443 ssl http2;
@@ -1205,10 +1095,16 @@ EOF
     mkdir -p ${configWebsiteDownloadPath}
 
     downloadAndUnzip "https://github.com/jinwyp/one_click_script/raw/master/download/website.zip" "${configWebsitePath}" "website.zip"
-    downloadAndUnzip "https://github.com/jinwyp/one_click_script/raw/master/download/trojan_client_all.zip" "${configWebsiteDownloadPath}" "trojan_client_all.zip"
-    #downloadAndUnzip "https://github.com/jinwyp/one_click_script/raw/master/download/trojan-qt5.zip" "${configWebsiteDownloadPath}" "trojan-qt5.zip"
-    
-    downloadAndUnzip "https://github.com/jinwyp/one_click_script/raw/master/download/v2ray_client_all.zip" "${configWebsiteDownloadPath}" "v2ray_client_all.zip"
+		 
+	wget -P "${configWebsiteDownloadPath}" "https://github.com/jinwyp/one_click_script/raw/master/download/trojan-mac.zip"
+    wget -P "${configWebsiteDownloadPath}" "https://github.com/jinwyp/one_click_script/raw/master/download/v2ray-windows.zip" 
+    wget -P "${configWebsiteDownloadPath}" "https://github.com/jinwyp/one_click_script/raw/master/download/v2ray-mac.zip"
+				  
+    # downloadAndUnzip "https://github.com/jinwyp/one_click_script/raw/master/download/trojan_client_all.zip" "${configWebsiteDownloadPath}" "trojan_client_all.zip"
+    # downloadAndUnzip "https://github.com/jinwyp/one_click_script/raw/master/download/trojan-qt5.zip" "${configWebsiteDownloadPath}" "trojan-qt5.zip"
+																										  
+    # downloadAndUnzip "https://github.com/jinwyp/one_click_script/raw/master/download/v2ray_client_all.zip" "${configWebsiteDownloadPath}" "v2ray_client_all.zip"
+
     #wget -P "${configWebsiteDownloadPath}" "https://github.com/jinwyp/one_click_script/raw/master/download/v2ray-android.zip"
 
     ${sudoCmd} systemctl start nginx.service
@@ -1230,7 +1126,9 @@ EOF
 	green "    nginx config path ${nginxConfigPath} "
 	green "    nginx access log ${nginxAccessLogFilePath} "
 	green "    nginx error log ${nginxErrorLogFilePath} "
+	green "    nginx 查看日志命令: journalctl -n 50 -u nginx.service"							   
 	green "    nginx Stop: systemctl stop nginx.service  Start: systemctl start nginx.service  Restart: systemctl restart nginx.service"
+	green "    nginx 查看运行状态命令: systemctl status nginx.service "		
     green " ================================================== "
 
     cat >> ${configReadme} <<-EOF
@@ -1239,16 +1137,16 @@ Webserver nginx install successful! disguised website is ${configSSLDomain}
 The static html content of the fake site is placed in the directory ${configWebsitePath}, You can change the content of the website by yourself.
 nginx config path ${nginxConfigPath}, nginx access log ${nginxAccessLogFilePath}, nginx error log ${nginxErrorLogFilePath}
 nginx Stop: systemctl stop nginx.service  Start: systemctl start nginx.service  Restart: systemctl restart nginx.service
+																				   
 
 EOF
-
-
+   
 	if [[ $1 == "trojan-web" ]] ; then
         cat >> ${configReadme} <<-EOF
 
 Trojan-web installed ${versionTrojanWeb} Visual management panel, access address  ${configSSLDomain}/${configTrojanWebNginxPath}
 Trojan-web Stop: systemctl stop trojan-web.service  Start: systemctl start trojan-web.service  Restart: systemctl restart trojan-web.service
-
+									  
 
 EOF
 	fi
@@ -1278,8 +1176,8 @@ function removeNginx(){
     rm -f ${configReadme}
 
     rm -rf "/etc/nginx"
-    ${sudoCmd} bash /root/.acme.sh/acme.sh --uninstall
-    uninstall /root/.acme.sh
+    ${sudoCmd} bash ${configSSLAcmeScriptPath}/acme.sh --uninstall
+    uninstall ${configSSLAcmeScriptPath}
     rm -rf ${configDownloadTempPath}
 
     green " ================================================== "
@@ -1287,8 +1185,7 @@ function removeNginx(){
     green " ================================================== "
 }
 
-
-function installTrojanWholeProcess(){
+function installTrojanV2rayWithNginx(){
 
     stopServiceNginx
     testLinuxPortUsage
@@ -1304,26 +1201,23 @@ function installTrojanWholeProcess(){
     read configSSLDomain
     if compareRealIpWithLocalIp "${configSSLDomain}" ; then
 
-        if [[ -z $1 ]] ; then
-            if [ "$isNginxWithSSL" = "no" ] ; then
-                getHTTPSCertificate "standalone"
-                installWebServerNginx
-            else
-                getHTTPSCertificate "standalone"
-                installWebServerNginx "v2ray"
-            fi
-
-        else
             getHTTPSCertificate "standalone"
-        fi
-
-        if test -s ${configSSLCertPath}/fullchain.cer; then
+           if test -s ${configSSLCertPath}/fullchain.cer; then
             green " ================================================== "
             green "     The SSL certificate has been detected successfully!"
             green " ================================================== "
 
             if [ "$isNginxWithSSL" = "no" ] ; then
+               installWebServerNginx
+									
+            else
+                installWebServerNginx "v2ray"
+            fi
+			if [ -z $1 ]; then
                 installTrojanServer
+            elif [ $1 = "both" ]; then
+                installTrojanServer
+                installV2ray
             else
                 installV2ray
             fi
@@ -1341,10 +1235,7 @@ function installTrojanWholeProcess(){
         exit
     fi
 }
-
-
-
-
+				
 function installTrojanServer(){
 
     trojanPassword1=$(cat /dev/urandom | head -1 | md5sum | head -c 10)
@@ -1391,8 +1282,7 @@ function installTrojanServer(){
 
     if [ "$configV2rayVlessMode" != "trojan" ] ; then
         configV2rayTrojanPort=443
-    elif [ "$configV2rayVlessMode" != "vlesstrojan" ] ; then
-        configV2rayTrojanPort=443
+    
     fi
 
 
@@ -1543,7 +1433,7 @@ function installTrojanServer(){
 }
 EOF
 
-        rm /etc/systemd/system/trojan.service   
+        #rm /etc/systemd/system/trojan.service   
         # Add startup script
         cat > ${osSystemMdPath}trojan.service <<-EOF
 [Unit]
@@ -1687,17 +1577,19 @@ EOF
         "cert": "${configSSLCertPath}/fullchain.cer",
         "key": "${configSSLCertPath}/private.key",
         "key_password": "",
+		"curves": "",
+        "cipher": "",										   
 	    "prefer_server_cipher": false,
+		"prefer_server_cipher": false,
+        "sni": "${configSSLDomain}",
         "alpn": [
             "http/1.1"
         ],
         "reuse_session": true,
-        "session_ticket": false,
-        "session_timeout": 600,
+        "session_ticket": true,
         "plain_http_response": "",
-        "curves": "",
-        "dhparam": "",
-        "sni": "${configSSLDomain}",
+        "fallback_addr": "127.0.0.1",
+        "fallback_port": 80,
         "fingerprint": "firefox"
     },
     "tcp": {
@@ -1745,9 +1637,10 @@ EOF
     ${sudoCmd} systemctl start trojan${promptInfoTrojanName}.service
     ${sudoCmd} systemctl enable trojan${promptInfoTrojanName}.service
 
-
+	if [ "$configV2rayVlessMode" != "trojan" ] ; then
 
     # Download and make the command line startup file of the trojan windows client
+
     rm -rf ${configTrojanBasePath}/trojan-win-cli
     rm -rf ${configTrojanBasePath}/trojan-win-cli-temp
     mkdir -p ${configTrojanBasePath}/trojan-win-cli-temp
@@ -1804,8 +1697,7 @@ EOF
 
     zip -r ${configWebsiteDownloadPath}/trojan-win-cli.zip ${configTrojanBasePath}/trojan-win-cli/
 
-
-
+	fi				
 
     # Set up cron timing tasks
     # https://stackoverflow.com/questions/610839/how-can-i-programmatically-create-a-new-cron-job
@@ -1841,7 +1733,7 @@ EOF
 	yellow "password9: ${trojanPassword9}"
 	yellow "password10: ${trojanPassword10}"
 	yellow "The number of passwords you specify the prefix: from ${configTrojanPasswordPrefixInput}202010 To ${configTrojanPasswordPrefixInput}202099 Can be used"
-
+	yellow "For example: password:${configTrojanPasswordPrefixInput}202011 or password:${configTrojanPasswordPrefixInput}202088 can be used"
     if [[ ${isTrojanGoSupportWebsocket} == "true" ]]; then
         yellow "Websocket path The path is: /${configTrojanGoWebSocketPath}"
         # yellow "Websocket obfuscation_password The obfuscated password is: ${trojanPasswordWS}"
@@ -1855,6 +1747,7 @@ EOF
 	#yellow "  Windows 客户端另一个版本下载：http://${configSSLDomain}/download/${configTrojanWindowsCliPrefixPath}/trojan-Qt5-windows.zip"
 	yellow "  Windows client cmdline：http://${configSSLDomain}/download/${configTrojanWindowsCliPrefixPath}/trojan-win-cli.zip"
 	yellow "  Windows The client command line version needs to be used with browser plug-ins, such as switchyomega, etc.! "
+									 
     yellow "2 MacOS client：http://${configSSLDomain}/download/${configTrojanWindowsCliPrefixPath}/trojan-mac.zip"
     #yellow "  MacOS 客户端Trojan-Qt5下载：http://${configSSLDomain}/download/${configTrojanWindowsCliPrefixPath}/trojan-Qt5-mac.zip"
     yellow "3 Android client https://github.com/trojan-gfw/igniter/releases "
@@ -1895,6 +1788,7 @@ Trojan${promptInfoTrojanName} Server-side configuration path ${configTrojanBaseP
 Trojan${promptInfoTrojanName} Stop: systemctl stop trojan${promptInfoTrojanName}.service  Start: systemctl start trojan${promptInfoTrojanName}.service  Restart: systemctl restart trojan${promptInfoTrojanName}.service
 
 Trojan${promptInfoTrojanName}server address: ${configSSLDomain}  port: $configV2rayTrojanPort
+																										 
 
 password1: ${trojanPassword1}
 password2: ${trojanPassword2}
@@ -1909,7 +1803,6 @@ password10: ${trojanPassword10}
 The number of passwords you specify the prefix: from ${configTrojanPasswordPrefixInput}202010 To ${configTrojanPasswordPrefixInput}202099 Can be used
 
 If trojan-go opens Websocket, then the Websocket path is: /${configTrojanGoWebSocketPath}
-
 
 EOF
 }
@@ -1972,11 +1865,6 @@ function upgradeTrojan(){
 
 }
 
-
-
-
-
-
 function installV2ray(){
 
     v2rayPassword1=$(cat /proc/sys/kernel/random/uuid)
@@ -1990,14 +1878,18 @@ function installV2ray(){
     v2rayPassword9=$(cat /proc/sys/kernel/random/uuid)
     v2rayPassword10=$(cat /proc/sys/kernel/random/uuid)
 
+	echo					
     if [ -f "${configV2rayPath}/v2ray" ] || [ -f "/usr/local/bin/v2ray" ] || [ -f "/usr/bin/v2ray" ]; then
         green " =================================================="
         green "  V2ray or Xray has been installed, exit the installation!"
         green " =================================================="
         exit
     fi
-
-
+	green " =================================================="
+    green "    Start to install V2ray or Xray "
+    green " =================================================="    
+    echo
+													  
     if [[ ( $configV2rayVlessMode == "trojan" ) || ( $configV2rayVlessMode == "vlessonly" ) || ( $configV2rayVlessMode == "vlesstrojan" ) ]] ; then
         promptInfoXrayName="xray"
         isXray="yes"
@@ -2010,7 +1902,6 @@ function installV2ray(){
             isXray="yes"
         fi
     fi
-
 
     if [[ -n "$configV2rayVlessMode" ]]; then
          configV2rayProtocol="vless"
@@ -2026,9 +1917,6 @@ function installV2ray(){
         fi
 
     fi
-
-
-
 
     read -p "Do you use IPV6 to unlock the Google verification code? The default is not unlocked, and the unlocking requires wireguard)? Please enter[y/N]?" isV2rayUnlockGoogleInput
     isV2rayUnlockGoogleInput=${isV2rayUnlockGoogleInput:-n}
@@ -2051,8 +1939,6 @@ function installV2ray(){
         V2rayUnlockText="\"geosite:netflix\", \"geosite:google\""
     fi
 
-
-
     if [ "$isXray" = "no" ] ; then
         getTrojanAndV2rayVersion "v2ray"
         green " =================================================="
@@ -2068,10 +1954,7 @@ function installV2ray(){
         promptInfoXrayInstall="Xray"
         promptInfoXrayVersion=${versionXray}
     fi
-
-
-
-    mkdir -p ${configV2rayPath}
+	mkdir -p ${configV2rayPath}
     cd ${configV2rayPath}
     rm -rf ${configV2rayPath}/*
 
@@ -2424,28 +2307,12 @@ EOM
 EOM
 
 
-    if [[ $isV2rayUnlockGoogleInput == [Nn] && $isV2rayUnlockNetflixInput == [Nn] ]]; then
+    if [[ $isV2rayUnlockGoogleInput == [Yy] || $isV2rayUnlockNetflixInput == [Yy] ]]; then
         
         read -r -d '' v2rayConfigOutboundInput << EOM
     "outbounds": [
         {
-            "tag": "direct",
-            "protocol": "freedom",
-            "settings": {}
-        },
-        {
-            "tag": "blocked",
-            "protocol": "blackhole",
-            "settings": {}
-        }
-    ]
-EOM
-    else
-
-        read -r -d '' v2rayConfigOutboundInput << EOM
-    "outbounds": [
-        {
-            "tag":"IP4_out",
+            "tag": "IP4_out",
             "protocol": "freedom",
             "settings": {}
         },
@@ -2472,11 +2339,23 @@ EOM
         ]
     }
 EOM
-        
+    else
+        read -r -d '' v2rayConfigOutboundInput << EOM
+	"outbounds": [
+        {
+            "tag": "direct",
+            "protocol": "freedom",
+            "settings": {}
+        },
+        {
+            "tag": "blocked",
+            "protocol": "blackhole",
+            "settings": {}
+        }
+    ]
+EOM
+
     fi
-
-
-
 
     read -r -d '' v2rayConfigLogInput << EOM
     "log" : {
@@ -2485,9 +2364,6 @@ EOM
         "loglevel": "warning"
     },
 EOM
-
-
-
 
     if [[ -z "$configV2rayVlessMode" ]]; then
         cat > ${configV2rayPath}/config.json <<-EOF
@@ -2582,7 +2458,6 @@ EOF
 EOF
     fi
 
-
     if [[ "$configV2rayVlessMode" == "vmessws" ]]; then
         cat > ${configV2rayPath}/config.json <<-EOF
 {
@@ -2676,8 +2551,6 @@ EOF
 EOF
     fi
 
-
-
     if [[  $configV2rayVlessMode == "vlesstrojan" ]]; then
             cat > ${configV2rayPath}/config.json <<-EOF
 {
@@ -2766,7 +2639,6 @@ EOF
 EOF
     fi
 
-
     if [[  $configV2rayVlessMode == "vlessonly" ]]; then
             cat > ${configV2rayPath}/config.json <<-EOF
 {
@@ -2831,7 +2703,6 @@ EOF
 }
 EOF
     fi
-
 
     if [[ $configV2rayVlessMode == "trojan" ]]; then
 
@@ -2905,11 +2776,6 @@ EOF
 EOF
 
     fi
-
-
-
-
-
     # Add V2ray startup script
     if [ "$isXray" = "no" ] ; then
     
@@ -2966,9 +2832,6 @@ EOF
     ${sudoCmd} systemctl restart ${promptInfoXrayName}.service
     ${sudoCmd} systemctl enable ${promptInfoXrayName}.service
 
-
-
-
     # Add client configuration instructions
     if [[ ${isInstallNginx} == "true" ]]; then
         configV2rayPortShowInfo=443
@@ -2982,9 +2845,6 @@ EOF
         configV2rayIsTlsShowInfo="tls"
     fi
 
-
-
-
     cat > ${configV2rayPath}/clientConfig.json <<-EOF
 =========== ${promptInfoXrayInstall}Client configuration parameters =============
 {
@@ -2994,14 +2854,12 @@ EOF
     uuid: ${v2rayPassword1},
     Extra id: 0,  // AlterID If it is a Vless protocol, this item is not needed
     Encryption: aes-128-gcm,  // If it is a Vless protocol, it is none
-    Transfer Protocol: ws,
-    WS path:/${configV2rayWebSocketPath},
+    Transfer Protocol: websocket,
+    Websocket path:/${configV2rayWebSocketPath},
     Underlying transport protocol:${configV2rayIsTlsShowInfo},
     Alias: give yourself any name
 }
 EOF
-
-
 
 if [[ "$configV2rayVlessMode" == "vmessws" ]]; then
     cat > ${configV2rayPath}/clientConfig.json <<-EOF
@@ -3050,7 +2908,6 @@ When 17selected Only install v2ray VLess runs on port443 (VLess-TCP-TLS) + (VMes
 EOF
 fi
 
-
 if [[ "$configV2rayVlessMode" == "vlessws" ]]; then
     cat > ${configV2rayPath}/clientConfig.json <<-EOF
 When you select16. Only install v2ray VLess runs on port443 (VLess-TCP-TLS) + (VLess-WS-TLS) support CDN, donot install nginx
@@ -3085,7 +2942,6 @@ When you select16. Only install v2ray VLess runs on port443 (VLess-TCP-TLS) + (V
 }
 EOF
 fi
-
 
 if [[ "$configV2rayVlessMode" == "vlessonly" ]] || [[ "$configV2rayVlessMode" == "trojan" ]]; then
     cat > ${configV2rayPath}/clientConfig.json <<-EOF
@@ -3171,10 +3027,6 @@ The number of passwords you specify the prefix: from ${configTrojanPasswordPrefi
 EOF
 fi
 
-
-
-
-
     # Set up cron timing tasks
     # https://stackoverflow.com/questions/610839/how-can-i-programmatically-create-a-new-cron-job
 
@@ -3243,13 +3095,11 @@ User ID or password7: ${v2rayPassword7}"
 User ID or password8: ${v2rayPassword8}"
 User ID or password9: ${v2rayPassword9}"
 User ID or password10: ${v2rayPassword10}"
-
-
+																	 
 EOF
 
     cat "${configV2rayPath}/clientConfig.json" >> ${configReadme}
 }
-    
 
 function removeV2ray(){
     if [ -f "${configV2rayPath}/xray" ]; then
@@ -3295,7 +3145,6 @@ function upgradeV2ray(){
     fi
 
 
-
     ${sudoCmd} systemctl stop ${promptInfoXrayName}.service
 
     mkdir -p ${configDownloadTempPath}/upgrade/${promptInfoXrayName}
@@ -3326,12 +3175,6 @@ function upgradeV2ray(){
         green " =================================================="
     fi
 }
-
-
-
-
-
-
 
 function installTrojanWeb(){
     # wget -O trojan-web_install.sh -N --no-check-certificate "https://raw.githubusercontent.com/Jrohy/trojan/master/install.sh" && chmod +x trojan-web_install.sh && ./trojan-web_install.sh
@@ -3522,7 +3365,6 @@ function upgradeV2rayUI(){
     /usr/bin/v2-ui
 }
 
-
 function getHTTPSNoNgix(){
     #stopServiceNginx
     #testLinuxPortUsage
@@ -3573,29 +3415,19 @@ function getHTTPSNoNgix(){
         exit
     fi
 
-
-
     if [[ $1 == "trojan" ]] ; then
         installTrojanServer
     fi
 
-    if [[ $1 == "v2ray" ]] ; then
+    elif [[ $1 == "both" ]] ; then
         installV2ray
-
-        if [[ $configV2rayVlessMode == "trojan" ]]; then
-            installTrojanServer
-        fi
+		installTrojanServer
+    else
+        installV2ray
     fi
+
 }
-
-
-
-
-
-
-
-
-
+					
 function startMenuOther(){
     clear
     green " =================================================="
@@ -3622,6 +3454,7 @@ function startMenuOther(){
     green " 15. Only install V2Ray or Xray (VLess or VMess protocol) open websocket, support CDN, (VLess/VMess+WS) donot install nginx, no TLS encryption, easy to integrate with existing websites or pagoda panels"
     green " 16. Only install V2Ray VLess runs on port443 (VLess-TCP-TLS) + (VLess-WS-TLS) Support CDN, donot install nginx"
     green " 17. Only install V2Ray VLess runs on port443 (VLess-TCP-TLS) + (VMess-TCP-TLS) + (VMess-WS-TLS) Support CDN, donot install nginx"
+ 
     green " 20. Only install Xray VLess running on port443 (VLess-TCP-XTLS direct) + (VLess-WS-TLS), don’t install nginx" 
     green " 21. Only install Xray VLess running on port443 (VLess-TCP-XTLS direct) + (VLess-WS-TLS) + trojan supports CDN of VLess, don’t install nginx"    
     green " 22. Only install Xray VLess and run on port443 (VLess-TCP-XTLS direct) + (VLess-WS-TLS) + trojan-go Support CDN of VLess, don't install nginx"   
@@ -3632,7 +3465,11 @@ function startMenuOther(){
     red " 28. Uninstall trojan-go"   
     red " 29. Uninstall v2ray或Xray"   
 
+										  
+											   
+							 
     green " =================================================="
+																																					  
     echo
     green " The following is the VPS network speed measurement tool"
     red " Script speed measurement will consume a lot of VPS traffic, please be aware!"
@@ -3646,8 +3483,8 @@ function startMenuOther(){
 
     echo
     green " 41. Install the new version of BBR-PLUS to accelerate the 6-in-1 script" 
-    green " 42. Install WireGuard to unlock google verification codes and Netflix restrictions" 
-    green " 43. Uninstall WireGuard" 
+    green " 42. Install BBR-plus by ylx2016" 
+
     echo
     green " 9. Return to the previous menu"
     green " 0. Exit script"
@@ -3714,18 +3551,18 @@ function startMenuOther(){
         ;; 
         21 )
             configV2rayVlessMode="trojan"
-            getHTTPSNoNgix "v2ray"
+            getHTTPSNoNgix "both"
         ;;
         22 )
             configV2rayVlessMode="trojan"
             isTrojanGo="yes"
-            getHTTPSNoNgix "v2ray"
+            getHTTPSNoNgix "both"
         ;;    
         23 )
             configV2rayVlessMode="trojan"
             isTrojanGo="yes"
             isTrojanGoSupportWebsocket="true"
-            getHTTPSNoNgix "v2ray"
+            getHTTPSNoNgix "both"
         ;;
         24 )
             configV2rayVlessMode="vlesstrojan"
@@ -3761,14 +3598,12 @@ function startMenuOther(){
             vps_zbench
         ;;        
         41 )
-            installBBR2
-        ;; 
+            installBBR
+        ;;
         42 )
-            installWireguard
-        ;;   
-        43 )
-            removeWireguard
-        ;;                       
+            installBBR2
+        ;;      
+                          
         9)
             start_menu
         ;;
@@ -3783,112 +3618,101 @@ function startMenuOther(){
         ;;
     esac
 }
-
-
-
-
-
-
-
+					  
 function start_menu(){
     clear
 
     if [[ $1 == "first" ]] ; then
         getLinuxOSRelease
-        ${osSystemPackage} -y install wget curl git 
+        installSoftDownload 
     fi
 
-    green " =================================================="
-    green " Trojan Trojan-go V2ray One-click installation script 2021-03-12 update. System support：centos7+ / debian9+ / ubuntu16.04+"
-    red " *Please donot use this script inany production environment Please donot have other programs occupy80 and 443ports"
-    green " =================================================="
-    green " 1. Install BBR-PLUS to accelerate 4-in-1 script"
+    green "============================================== ================================================== =="
+    green "Trojan Trojan-go V2ray One-click installation script | 2021-04-15 | By jinwyp | System support: centos7+ / debian9+ / ubuntu16.04+"
+    red "*Please do not use this script in any production environment, please do not have other programs occupy 80 and 443 ports"
+    green "============================================== ================================================== =="
+    green "1. Install linux kernel BBR-PLUS, install WireGuard, used to unlock google verification code and Netflix restrictions"
     echo
-    green " 2. Installing trojan and nginx does not support CDN"
-    green " 3. Repair the certificate and continue to install trojan"
-    green " 4. Upgrade trojan to the latest version"
-    red " 5. Uninstall trojan and nginx"
+    green "2. Installing trojan and nginx does not support CDN, trojan runs on port 443"
+    green "3. Upgrade trojan to the latest version"
+To
+    red "4. Uninstall trojan and nginx"
     echo
-    green " 6. Install trojan-go and nginx does not support CDN, donot open websocket (compatible with trojan client)"
-    green " 7. Repair the certificate and continue to install trojan-go does not support CDN, donot open websocket"
-    green " 8. Install trojan-go and nginx to support CDN and open websocket (compatible with trojan client but not compatible with websocket)"
-    green " 9. Repair the certificate and continue to install trojan-go to support CDN, open websocket"
-    green " 10. Upgrade trojan-go to the latest version"
-    red " 11. Uninstall trojan-go and nginx"
+    green "5. Installing trojan-go and nginx does not support CDN, do not open websocket (compatible with trojan client), trojan-go runs on port 443"
+    green "6. Install trojan-go and nginx to support CDN and open websocket (compatible with trojan client but not compatible with websocket), trojan-go runs on port 443"
+	green "7. Upgrade trojan-go to the latest version"
+    red "8. Uninstall trojan-go and nginx"
     echo
-    green " 12. Install v2ray or xray and nginx, support websocket tls1.3, support CDN"
-    green " 13. Upgrade v2ray or xray to the latest version"
-    red " 14. Uninstall v2ray or xray and nginx"
+    green "11. Install v2ray or xray and nginx, support websocket tls1.3, support CDN, nginx runs on port 443"
+    green "12. Install xray and nginx, (VLess-TCP-XTLS direct) + (VLess-WS-TLS) + xray's own trojan, support CDN, xray runs on port 443"
+    green "13. Upgrade v2ray or xray to the latest version"
+    red "14. Uninstall v2ray or xray and nginx"
     echo
-    green " 15. Install trojan + v2ray or xray and nginx at the same time, CDN is not supported"
-    green " 16. Upgrade v2ray or xray and trojan to the latest version"
-    red " 17. Uninstall trojan, v2ray or xray and nginx"
-    green " 18. Install trojan-go + v2ray or xray and nginx at the same time, CDN is not supported"
-    green " 19. Install trojan-go + v2ray or xray and nginx at the same time, both trojan-go and v2ray support CDN"
-    green " 20. Upgrade v2ray or xray and trojan-go to the latest version"
-    red " 21. Uninstall trojan-go, v2ray or xray and nginx"
+    green "21. Install trojan + v2ray or xray and nginx at the same time, CDN is not supported, trojan runs on port 443"
+    green "22. Upgrade v2ray or xray and trojan to the latest version"
+red "23. Uninstall trojan, v2ray or xray and nginx"
     echo
-    green " 28. View information such as installed configuration and user password"
-    green " 29. Submenu install trojan and v2ray visual management panel"
-    green " 30. Do not install nginx, only install trojan or v2ray or xray, and optionally install an SSL certificate to facilitate integration with existing websites or pagoda panels"
-    green " =================================================="
-    green " 31. Install OhMyZsh and plug-in zsh-autosuggestions, Micro editor and other software"
-    green " 32. Enable root user SSH login, for example, Google Cloud turns off root login by default, you can enable it through this option"
-    green " 33. Modify the SSH login port number"
-    green " 34. Set the time zone to Beijing time"
-    green " 35. Use VI to edit the authorized_keys file, which is convenient to fill in the public key, log in without password, and increase security"
-    green " 41. Submenu Internet Speed Test Tool, Netflix Test Tool, Unblock Netflix and Remove Google Verification Code Tool"
-    green " 0. Exit script"
+    green "24. Install trojan-go + v2ray or xray and nginx at the same time, trojan-go does not support CDN, v2ray or xray supports CDN, trojan-go runs on port 443"
+    green "25. Install trojan-go + v2ray or xray and nginx at the same time, both trojan-go and v2ray support CDN, trojan-go runs on port 443"
+    green "26. Upgrade v2ray or xray and trojan-go to the latest version"
+    red "27. Uninstall trojan-go, v2ray or xray and nginx"
+    echo
+    green "28. View the installed configuration and user password information"
+    green "29. Submenu install trojan and v2ray visual management panel, network speed test tool, Netflix test tool"
+    green "30. Do not install nginx, only install trojan or v2ray or xray, and optionally install an SSL certificate to facilitate integration with existing websites or pagoda panels"
+    green "============================================== =="
+    green "31. Install OhMyZsh and plug-in zsh-autosuggestions, Micro editor and other software"
+    green "32. Turn on SSH login for root users. For example, Google Cloud turns off root login by default, which can be turned on by this option."
+    green "33. Modify the SSH login port number"
+    green "34. Set the time zone to Beijing time"
+    green "35. Edit the authorized_keys file with VI, it is convenient to fill in the public key, login without password, and increase security"
+    green "88. Upgrade script"
+    green "0. Exit the script"
     echo
     read -p "Please enter the number:" menuNumberInput
     case "$menuNumberInput" in
-        1 )
-            installBBR
+        11 )
+            installWireguard
         ;;
         2 )
-            installTrojanWholeProcess
+            installTrojanV2rayWithNginx
         ;;
         3 )
-            installTrojanWholeProcess "repair"
-        ;;
-        4 )
+		   
+							
+											  
             upgradeTrojan
         ;;
-        5 )
+        4 )
             removeNginx
             removeTrojan
+        ;;
+        5 )
+        isTrojanGo="yes"
+        installTrojanV2rayWithNginx
         ;;
         6 )
             isTrojanGo="yes"
-            installTrojanWholeProcess
+            isTrojanGoSupportWebsocket="true"
+            installTrojanV2rayWithNginx
         ;;
         7 )
             isTrojanGo="yes"
-            installTrojanWholeProcess "repair"
-        ;;
-        8 )
-            isTrojanGo="yes"
-            isTrojanGoSupportWebsocket="true"
-            installTrojanWholeProcess
-        ;;
-        9 )
-            isTrojanGo="yes"
-            isTrojanGoSupportWebsocket="true"
-            installTrojanWholeProcess "repair"
-        ;;
-        10 )
-            isTrojanGo="yes"
             upgradeTrojan
         ;;
-        11 )
+        8 )
             isTrojanGo="yes"
             removeNginx
             removeTrojan
         ;;
-        12 )
+        11 )
             isNginxWithSSL="yes"
-            installTrojanWholeProcess
+            installTrojanV2rayWithNginx "v2ray"
         ;;
+        12 )
+            configV2rayVlessMode="vlesstrojan"
+            installTrojanV2rayWithNginx "v2ray"
+        ;;        
         13 )
             upgradeV2ray
         ;;
@@ -3896,36 +3720,36 @@ function start_menu(){
             removeNginx
             removeV2ray
         ;;
-        15 )
-            installTrojanWholeProcess
-            installV2ray
+        21 )
+            installTrojanV2rayWithNginx "both"
+									 
         ;;
-        16 )
+        22 )
             upgradeTrojan
             upgradeV2ray
         ;;
-        17 )
+        23 )
             removeNginx
             removeTrojan
             removeV2ray
         ;;
-        18 )
+        24 )
             isTrojanGo="yes"
-            installTrojanWholeProcess
-            installV2ray
+            installTrojanV2rayWithNginx "both"
+			
         ;;
-        19 )
+        25 )
             isTrojanGo="yes"
             isTrojanGoSupportWebsocket="true"
-            installTrojanWholeProcess
-            installV2ray
+            installTrojanV2rayWithNginx "both"
+			
         ;;
-        20 )
+        26 )
             isTrojanGo="yes"
             upgradeTrojan
             upgradeV2ray
         ;;
-        21 )
+        27 )
             isTrojanGo="yes"
             removeNginx
             removeTrojan
@@ -3958,21 +3782,24 @@ function start_menu(){
         ;;
         35 )
             editLinuxLoginWithPublicKey
-        ;;        
+        ;;                 
         29 )
             startMenuOther
         ;;
         30 )
             startMenuOther
         ;;        
-        41 )
-            startMenuOther
+        81 )
+            installBBR
         ;;
-        89 )
+        82 )
+            installBBR2
+        ;;        
+        83 )
             installPackage
         ;;
         88 )
-            installBBR2
+            upgradeScript
         ;;
         99 )
             getTrojanAndV2rayVersion "trojan"
